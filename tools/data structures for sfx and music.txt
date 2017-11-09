@@ -1,0 +1,51 @@
+	
+-- This code is public domain, feel free to copy, use, and modify however you'd like
+
+function make_note(pitch, instr, vol, effect)
+  return { pitch + 64*(inst%4) , 16*effect + 2*vol + flr(instr/4) } -- flr may be redundant when this is poke'd into memory
+end
+
+function get_note(sfx, time)
+  local addr = 0x3200 + 68*sfx + 2*time
+  return { peek(addr) , peek(addr + 1) }
+end
+
+function set_note(sfx, time, note)
+  local addr = 0x3200 + 68*sfx + 2*time
+  poke(addr, note[1])
+  poke(addr+1, note[2])
+end
+
+function get_speed(sfx)
+  return peek(0x3200 + 68*sfx + 65)
+end
+
+function set_speed(sfx, speed)
+  poke(0x3200 + 68*sfx + 65, speed)
+end
+
+function get_loop_start(sfx)
+  return peek(0x3200 + 68*sfx + 66)
+end
+
+function get_loop_end(sfx)
+  return peek(0x3200 + 68*sfx + 67)
+end
+
+function set_loop(sfx, start, end)
+  local addr = 0x3200 + 68*sfx
+  poke(addr + 66, start)
+  poke(addr + 67, end)
+end
+
+--------------
+SECRET EFFECTS
+--------------
+0x5f40: play channel twice slower
+0x5f41: a very short delay (cheap reverb/unison simulation)
+0x5f42: distortion (rounds the output waveform to min or max depending on which is nearest)
+0x5f43: low-pass filter
+
+For each of these values, bits 0 to 3 correspond to channels 1 to 4 respectively
+(for example, poke(0x5f42,6) will apply distortion to channels 2 and 4).
+Bits 4 to 7 seem to be unused.

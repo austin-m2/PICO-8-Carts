@@ -1,0 +1,89 @@
+dark blue = 0 and 0
+purple = 1 and 4
+grey = 2 and  5
+white = 3 and 6
+
+
+1  2  3
+
+4  5  6
+
+a        b      c
+0 and 0 = 0
+1 and 0 = 1
+2 and 0 = 2
+3 and 0 = 3
+                3a + b                            a = (c-b) / 3
+0 and 4 = 4                                    b = c - 3a
+0 and 5 = 5
+0 and 6 = 6
+1 and 4 = 7
+1 and 5 = 8
+1 and 6 = 9
+2 and 4 = 10
+2 and 5 = 11
+2 and 6 = 12
+3 and 4 = 13
+3 and 5 = 14
+3 and 6 = 15
+
+
+
+sspr sx sy sw sh dx dy [dw dh] [flip_x] [flip_y]
+
+compressed sspr(sx, sy, sw, sh, dx, dy, layer)
+	if layer == 0
+		color 0 -> 0
+		color 1 -> 1
+		color 2 -> 2
+		color 3 -> 3
+
+		color 4 -> 0
+		color 5 -> 0
+		color 6 -> 0
+
+		color 7 -> 1
+		color 8 -> 1
+		color 9 -> 1
+
+		color 10 -> 2
+		color 11 -> 2
+		color 12 -> 2
+
+		color 13 -> 3
+		color 14 -> 3
+		color 15 -> 3
+
+		for i = 4, 15 do
+			if(i < 7) pal(i, 0)
+			if(i >= 7 and i < 10) pal(i,1)
+			if(i >= 10 and i <13) pal(i,2)
+			if(i >= 13) pal(i,3)
+		end
+
+		
+	else --layer ==1
+		color 0 -> 0
+		color 1 -> 0
+		color 2 -> 0
+		color 3 -> 0
+
+		color 4 -> 4
+		color 5 -> 5
+		color 6 -> 6
+
+		color 7 -> 4
+		color 8 -> 5
+		color 9 -> 6
+
+		color 10 -> 4
+		color 11 -> 5
+		color 12 -> 6
+
+		color 13 -> 4
+		color 14 -> 5
+		color 15 -> 6
+	end
+
+
+end
