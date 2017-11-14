@@ -39,6 +39,38 @@ function _update60()
 
 	upd_tiles()
 
+	cpu = stat(1)
+	if(minradius <=127) then
+		for x = 4, 127, 8 do
+			if (epicenterx - x > maxradius) then goto continuex end
+			
+			for y = 4, 127, 8  do
+				if (epicentery - y > maxradius) then goto continuey end
+
+				distance = dist(x, y, epicenterx, epicentery)
+				if(distance <= maxradius and distance >= minradius) then
+					--spr(17,x-4,y-4)
+					add(yellowtiles, {x - 4, y - 4})
+					--local pixelcolor = pget(x,y)
+					--local i = 1
+					--while(pixelcolor != inverses[i][1]) do
+					--	i += 1
+					--end
+					--newcolor = inverses[i][2]
+					--pset(x, y, newcolor)
+				end
+				::continuey::
+			end
+			::continuex::
+		end
+	end
+	cpu = stat(1) - cpu
+	cpu *= 100
+
+
+
+
+
 	if(pausetimer <= 0) then
 		camera_update()
 		player_update()
@@ -66,27 +98,12 @@ function _draw()
 
 	if (stat(7) > highestmem) then highestmem = stat(7) end
 	print(highestmem,0,0,7)
-	--print('cpu:'..stat(1), 0, 8, 7)
-
 	
-	if(minradius <=127) then
-		for x = 4, 127, 8 do
-			for y = 4, 127, 8  do
-				distance = dist(x, y, epicenterx, epicentery)
-				if(distance <= maxradius and distance >= minradius) then
-					--spr(17,x-4,y-4)
-					add(yellowtiles, {x - 4, y - 4})
-					--local pixelcolor = pget(x,y)
-					--local i = 1
-					--while(pixelcolor != inverses[i][1]) do
-					--	i += 1
-					--end
-					--newcolor = inverses[i][2]
-					--pset(x, y, newcolor)
-				end
-			end
-		end
-	end
+
+	print(cpu, 0, 8, 7)
+    print("speed: "..sqrt(player.dx^2 + player.dy^2), 0, 16, 7)
+	
+
 
 	tiles_draw()
 
@@ -213,8 +230,8 @@ function player_update()
 			for v in all(shadow) do del(shadow, v) end
 
 			--do background disco effect
-			minradius = -21
-			maxradius = 0
+			minradius = -26
+			maxradius = -5
 			epicenterx = player.x 
 			epicentery = player.y + 4
 
@@ -300,10 +317,10 @@ function player_move()
 		end
 
 		--limit to top speed
-		if(player.state == "idle") then maxspeed = player.topspeed end
-		if(player.state == "charging") then maxspeed = player.topspeed /4 end
-		player.dx = clamp(player.dx, -maxspeed, maxspeed)
-		player.dy = clamp(player.dy, -maxspeed, maxspeed)
+		--if(player.state == "idle") then maxspeed = player.topspeed end
+		--if(player.state == "charging") then maxspeed = player.topspeed /4 end
+		--player.dx = clamp(player.dx, -maxspeed, maxspeed)
+		--player.dy = clamp(player.dy, -maxspeed, maxspeed)
 
 		--push player if out of bounds
 		if(player.x <= 7) then player.dx += -.18 * (player.x - 7) end
@@ -312,12 +329,20 @@ function player_move()
 		if(player.y >= 122) then player.dy -= .18 * (player.y- 122) end
 
 		--friction force
-		player.dx = lerp(player.dx, 0, .15)
-		player.dy = lerp(player.dy, 0, .15)
+        if(player.state == "idle") then
+            player.dx = lerp(player.dx, 0, .20)
+            player.dy = lerp(player.dy, 0, .20)
+        end 
+        if (player.state == "charging") then
+            player.dx = lerp(player.dx, 0, .40)
+            player.dy = lerp(player.dy, 0, .40  )
+        end
+		
 
 		--move the player 
 		player.x += player.dx
 		player.y += player.dy
+
 
 		--animate those legs
 		if((abs(player.dx) <= .1) and (abs(player.dy) <= .1)) then
@@ -588,6 +613,7 @@ function shot_draw(v)
 
 	fillp(0b0110110000010100.1)
 	circfill(v.x, v.y, 5, 8)
+	fillp(0b0000000000000000.1)
 end
 
 function shadow_init()
@@ -644,13 +670,13 @@ function shadow_update()
 
 	--bounce shadow off walls
 	if((shadow[1].x >= 122 and shadow[1].dx >= 0) or (shadow[1].x <= -1 and shadow[1].dx <= 0)) then 
-		cameraoffsetx += 1.8 * abs(shadow[1].dx)
+		cameraoffsetx += -1.8 * shadow[1].dx
 		shadow[1].dx = -shadow[1].dx * .6 
 
 
 	end
 	if((shadow[1].y >= 122 and shadow[1].dy >= 0) or (shadow[1].y <= 0 and shadow[1].dy <= 0)) then 
-		cameraoffsety += 1.8 * abs(shadow[1].dy)
+		cameraoffsety += -1.8 * shadow[1].dy
 		shadow[1].dy = -shadow[1].dy * .6 
 	end
 
@@ -691,17 +717,13 @@ function shadow_draw()
 	}
 
 	if(player.state == "teleport") then
-		local cpu = stat(1)
 		for item in all(shadowpixels) do
 			local col = pget(shadow[1].x + item[1], shadow[1].y + item[2])
 			col = inverses[col + 1][2]
 			--col = inverses_dark[col + 1]
 			pset(shadow[1].x + item[1], shadow[1].y + item[2], col)
 		end
-		cpu = stat(1) - cpu
-		cpu *= 100
-		print(cpu, 0, 8, 7)
-	
+
 	--[[for y = shadow[1].y, shadow[1].y + 7 do
 		local col = pget(shadow[1].x + 3, y)
 		col = inverses[col + 1][2]
@@ -938,7 +960,10 @@ function clamp(x, min, max)
 	return x 
 end
 
-function lerp(a,b,t) return a+(b-a)*t end
+function lerp(a,b,t) 
+	return a+(b-a)*t 
+	--return (b - a) * (-2^(-10 * t) + 1 ) + a
+end
 function dist(x1,y1, x2,y2) return sqrt((x2-x1)^2+(y2-y1)^2) end
 
 inverses = {
