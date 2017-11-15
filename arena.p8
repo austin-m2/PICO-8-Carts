@@ -1,5 +1,5 @@
 pico-8 cartridge // http://www.pico-8.com
-version 11
+version 14
 __lua__
 
 player = {}
@@ -95,16 +95,7 @@ end
 function _draw()
 	cls()
 	map(0,0,0,0,16,16)
-
-	if (stat(7) > highestmem) then highestmem = stat(7) end
-	print(highestmem,0,0,7)
-	
-
-	print(cpu, 0, 8, 7)
-    print("speed: "..sqrt(player.dx^2 + player.dy^2), 0, 16, 7)
-	
-
-
+    
 	tiles_draw()
 
 	--draw shots above player
@@ -124,7 +115,22 @@ function _draw()
 		end
 	end
 
+    --draw border
+    --fillp(0b1000011110001000)   
+    c = 13
+    line(0, 0, 0, 127, c)
+    line(127, 0, 127, 127, c)
+    line(0, 0, 127, 0, c)
+    line(0, 127, 127, 127, c)
+    --fillp(0b0000000000000000)
 
+    --debug text
+    if (stat(7) > highestmem) then highestmem = stat(7) end
+    print(highestmem,1,0,7)
+    print(cpu, 1, 8, 7)
+    print("speed: "..sqrt(player.dx^2 + player.dy^2), 1, 16, 7)
+    print("cameraoffsety: "..cameraoffsety, 1, 24, 7)
+    print("cameraoffsetx: "..cameraoffsetx, 1, 32, 7)
 
 
 end
@@ -323,10 +329,10 @@ function player_move()
 		--player.dy = clamp(player.dy, -maxspeed, maxspeed)
 
 		--push player if out of bounds
-		if(player.x <= 7) then player.dx += -.18 * (player.x - 7) end
-		if(player.x >= 122) then player.dx -= .18 * (player.x - 122) end
-		if(player.y <= 7) then player.dy += -.18 * (player.y - 7) end
-		if(player.y >= 122) then player.dy -= .18 * (player.y- 122) end
+		if(player.x <= 5) then player.dx += -.18 * (player.x - 5) end
+		if(player.x >= 124) then player.dx -= .18 * (player.x - 124) end
+		if(player.y <= 1) then player.dy += -.18 * (player.y - 1) end
+		if(player.y >= 118) then player.dy -= .18 * (player.y- 118) end
 
 		--friction force
         if(player.state == "idle") then
@@ -675,7 +681,7 @@ function shadow_update()
 
 
 	end
-	if((shadow[1].y >= 122 and shadow[1].dy >= 0) or (shadow[1].y <= 0 and shadow[1].dy <= 0)) then 
+	if((shadow[1].y >= 120 and shadow[1].dy >= 0) or (shadow[1].y <= 0 and shadow[1].dy <= 0)) then 
 		cameraoffsety += -1.8 * shadow[1].dy
 		shadow[1].dy = -shadow[1].dy * .6 
 	end
@@ -740,180 +746,12 @@ function shadow_draw()
 end
 
 
-function shoot_old()
-
-	local newshot = {}
-	newshot.timer = 8
-	newshot.dir = shotdir
-
-	if(shotdir=="east") then
-		startpoint = {player.x+8,player.y+3}
-		i = 6
-		cameraoffsetx = 3
-	end
-	if(shotdir=="northeast") then
-		startpoint = {player.x+7, player.y+1}
-		i = 5
-		cameraoffsetx = 2 --bump camera
-		cameraoffsety = -2
-	end
-	if(shotdir=="north") then
-		startpoint = {player.x+6, player.y+1}
-		i = 6
-		cameraoffsety=-3
-	end
-	if(shotdir=="northwest") then
-		startpoint = {player.x-1, player.y+1}
-		i = 5
-		cameraoffsetx=-2
-		cameraoffsety=-2
-	end
-	if(shotdir=="west") then
-		startpoint = {player.x-1, player.y+3}
-		i = 6
-		cameraoffsetx=-3
-	end
-	if(shotdir=="southwest") then
-		startpoint = {player.x-1, player.y+5}
-		i = 5
-		cameraoffsetx=-2
-		cameraoffsety=2
-	end
-	if(shotdir=="south") then
-		startpoint = {player.x+1, player.y+5}
-		i = 6
-		cameraoffsety=3
-	end
-	if(shotdir=="southeast") then
-		startpoint = {player.x+8, player.y+5}
-		i = 5
-		cameraoffsetx=2
-		cameraoffsety=2
-	end
-
-	--create four beams of shots
-	add(shots,startpoint)
-	for x=1,i,1 do add(shots, addshot(3,shots[#shots],1)) end
-	add(shots,startpoint)
-	for x=1,i+1,1 do add(shots, addshot(1,shots[#shots],1)) end
-	add(shots,startpoint)
-	for x=1,i+1,1 do add(shots, addshot(1,shots[#shots],-1)) end
-	add(shots,startpoint)
-	for x=1,i,1 do add(shots, addshot(3,shots[#shots],-1)) end
-
-
-
-	
-end
-
-function addshot(chance, prev, sign) --chance = #/5, prev = prev shot, sign: 1 for up, -1 for down
-	local temp = flr(rnd(5))
-	local newshot = {}
-	
-	--east
-	if(shotdir=="east") then
-		if(temp<chance) then
-			newshot = {prev[1]+1, prev[2]-sign}
-		else
-			newshot = {prev[1]+1, prev[2]}
-		end
-		return newshot
-	end
-	
-	--northeast
-	if(shotdir=="northeast") then
-		if(temp<chance) then
-			newshot = {prev[1]+1-sign, prev[2]-1-sign}
-		else
-			newshot = {prev[1]+1, prev[2]-1}
-		end
-		return newshot
-	end
-	
-	--north
-	if(shotdir=="north") then
-		if(temp<chance) then
-			newshot = {prev[1]-sign, prev[2]-1}
-		else
-			newshot = {prev[1], prev[2]-1}
-		end
-		return newshot
-	end
-	
-	--northwest
-	if(shotdir=="northwest") then
-		if(temp<chance) then
-			newshot = {prev[1]-1+sign, prev[2]-1-sign}
-		else
-			newshot = {prev[1]-1, prev[2]-1}
-		end
-		return newshot
-	end
-	
-	--west
-	if(shotdir=="west") then
-		if(temp<chance) then
-			newshot = {prev[1]-1, prev[2]+sign}
-		else
-			newshot = {prev[1]-1, prev[2]}
-		end
-		return newshot
-	end
-	
-	--southwest
-	if(shotdir=="southwest") then
-		if(temp<chance) then
-			newshot = {prev[1]-1+sign, prev[2]+1+sign}
-		else
-			newshot = {prev[1]-1, prev[2]+1}
-		end
-		return newshot
-	end
-	
-	--south
-	if(shotdir=="south") then
-		if(temp<chance) then
-			newshot = {prev[1]+sign, prev[2]+1}
-		else
-			newshot = {prev[1], prev[2]+1}
-		end
-		return newshot
-	end
-	
-	--southeast
-	if(shotdir=="southeast") then
-		if(temp<chance) then
-			newshot = {prev[1]+1-sign, prev[2]+1+sign}
-		else
-			newshot = {prev[1]+1, prev[2]+1}
-		end
-		return newshot
-	end
-end
-
-function shots_update_old()
-	if(shotlifetimer >4) then
-		shotcolor = 8
-	else
-		shotcolor = 2
-	end
-	
-	if (shotlifetimer > 0) then 
-		shotlifetimer-=1
-	else
-		for v in all(shots) do del(shots,v) end --delete shots if timer reaches 0
-	end
-end
-
-function drawshot(shot)
-	pset(shot[1],shot[2],shotcolor)
-end
-
-
-
 function camera_update()
-	cameraoffsetx = lerp(cameraoffsetx,0,.4)
+    cameraoffsetx = lerp(cameraoffsetx,0,.4)
 	cameraoffsety = lerp(cameraoffsety,0,.4)
+    if (cameraoffsetx <= 0 and cameraoffsetx > -.2) then cameraoffsetx = 0 end
+    if (cameraoffsety <= 0 and cameraoffsety > -.2) then cameraoffsety = 0 end
+
 	camera(cameraoffsetx,cameraoffsety)
 end
 
@@ -964,6 +802,7 @@ function lerp(a,b,t)
 	return a+(b-a)*t 
 	--return (b - a) * (-2^(-10 * t) + 1 ) + a
 end
+
 function dist(x1,y1, x2,y2) return sqrt((x2-x1)^2+(y2-y1)^2) end
 
 inverses = {
