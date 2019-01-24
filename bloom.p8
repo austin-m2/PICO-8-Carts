@@ -22,6 +22,9 @@ __lua__
 		height = 17
 	}
 
+  curr_mouse_to_cell_coords = nil
+  curr_mouse_to_cell = nil
+
 	cells = {}
 	gems = {}
 
@@ -48,10 +51,10 @@ __lua__
     end
   end
 
-  board[3][3] = 2
-  board[3][4] = 3
-  board[2][4] = 1
-  board[1][4] = 4
+  --board[3][3] = 2
+  --board[3][4] = 3
+  --board[2][4] = 1
+  --board[1][4] = 4
 
   --left to right, top to bottom
   cell_coords = {
@@ -129,13 +132,17 @@ function _draw()
   cells_draw()
 
   --print coordinates of cell under mouse
-  if (mouse_to_cell() != nil) then 
-    print(mouse_to_cell()[1], 0, 8, 7)
-    print(mouse_to_cell()[2], 8, 8, 7)
+  if (curr_mouse_to_cell != nil) then 
+    print(curr_mouse_to_cell[1], 0, 8, 7)
+    print(curr_mouse_to_cell[2], 8, 8, 7)
   end
 
 	--gems_draw()
 	mouse_draw()
+
+
+  print(mouse.x, 0, 0, 7)
+  print(mouse.y, 16, 0, 7)
 
 end
 
@@ -155,6 +162,8 @@ end
 function mouse_update()
 	mouse.x = stat(32)
 	mouse.y = stat(33)
+  curr_mouse_to_cell = mouse_to_cell()
+  curr_mouse_to_cell_coords = mouse_to_cell_coords()
 end
 
 function mouse_draw()
@@ -169,8 +178,6 @@ function game_update()
   if (gamestate == "player1") then
     if (is_pressed(4)) colorchoice = 1
     if (is_pressed(5)) colorchoice = 2
-
-
   end
 end
 
@@ -197,7 +204,7 @@ function cells_update()
   end
   
   --lerp the cell under the mouse upward
-  closestcell = mouse_to_cell_coords()
+  closestcell = curr_mouse_to_cell_coords
   if (closestcell == nil) return
   --if there is a tile there, don't lerp upward
   local index = index_to_board_coords(closestcell)
@@ -224,9 +231,9 @@ function cells_draw()
     line(v.x + 16, v.y + 12, v.x + 16, 127, 0)
 		sspr(cell.spritesheet_x, cell.spritesheet_y, cell.width, cell.height, v.x, v.y, cell.width, cell.height) --draw the actual empty cell
 
-    local coords = index_to_board_coords(board_index)
-    if (board[coords[1]][coords[2]] == 1) then
-      spr(5, v.x + 1, v.y + 2, 2, 2) --draw a token (just a test)
+    local coords = index_to_board_coords(board_index)  
+    if (board[coords[1]][coords[2]] == 1) then --draw tokens
+      spr(5, v.x + 1, v.y + 2, 2, 2)
     elseif (board[coords[1]][coords[2]] == 2) then
       spr(7, v.x + 1, v.y + 2, 2, 2)
     elseif (board[coords[1]][coords[2]] == 3) then
@@ -236,6 +243,13 @@ function cells_draw()
     end
 
 
+    local curcell = curr_mouse_to_cell
+    if (curcell != nil and board[curcell[1]][curcell[2]] == 0) then
+      circfill(v.x + 8, v.y + 8, 1, colorchoice_to_color(colorchoice))
+    end
+
+
+
     board_index += 1
 	end
   palt()
@@ -243,7 +257,7 @@ function cells_draw()
 end
 
 function gems_update()
-	gem_coords = mouse_to_cell_coords()
+	gem_coords = curr_mouse_to_cell_coords
 	if (is_pressed(6)) then
 
 		sfx(0)
@@ -280,10 +294,16 @@ end
 --returns the index of the closest cell to the mouse
 --should be called after the blank cells are drawn
 function mouse_to_cell_coords()
-  if (pget(mouse.x, mouse.y) == 12) return nil --mouse is on the sky
-  if (mouse.y > 104) return nil --mouse is below the board
-  if ((mouse.x < 33) and (mouse.y > (34 / 25 * mouse.x + 52))) return nil --mouse is below the left diagonal
-  if ((mouse.x > 96) and (mouse.y > (-34 / 25 * mouse.x + 228))) return nil --mouse is below the right diagonal
+  --if (pget(mouse.x, mouse.y) == 12) return nil --mouse is on the sky
+  --if (mouse.y > 104) return nil --mouse is below the board
+  --if ((mouse.x < 33) and (mouse.y > (34 / 25 * mouse.x + 52))) return nil --mouse is below the left diagonal
+  --if ((mouse.x > 96) and (mouse.y > (-34 / 25 * mouse.x + 228))) return nil --mouse is below the right diagonal
+  local h = 64
+  local k = 60
+  local a = 54
+  local b = 42
+  if (mouse.y > sqrt((1 - ((mouse.x - h)^2) / (a ^ 2)) * (b ^ 2)) + k) return nil
+  if (mouse.y < (-1 * sqrt((1 - ((mouse.x - h)^2) / (a ^ 2)) * (b ^ 2)) + k)) return nil
 
   index = 1
   closestindex = 1
@@ -319,6 +339,13 @@ function index_to_board_coords(index)
       end
     end
   end
+end
+
+function colorchoice_to_color(c)
+  if (c == 1) return 9
+  if (c == 2) return 8
+  if (c == 3) return 11
+  if (c == 4) return 13
 end
 
 
