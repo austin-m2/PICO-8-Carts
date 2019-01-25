@@ -142,6 +142,7 @@ function _draw()
     print(curr_mouse_to_cell[2], 8, 8, 7)
   end
 
+  text_draw()
 	--gems_draw()
 	mouse_draw()
 
@@ -209,6 +210,61 @@ function game_update()
         p1choice2 = nil
       end      
     end
+
+    --check whether the player wants to end their turn
+    if (btnp(5,1)) then
+        gamestate = "p1top2"
+        p1choice1 = nil
+        p1choice2 = nil
+        colorchoice = 0
+    end
+  end
+
+  if (gamestate == "player2") then
+    if (is_pressed(4)) colorchoice = 3
+    if (is_pressed(5)) colorchoice = 4
+
+    --check whether a piece should be put down
+    if (is_pressed(6)) then
+      if (curr_mouse_to_cell != nil and board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] == 0)  then
+        if ((p2choice3 == nil and colorchoice == 3) or (p2choice4 == nil and colorchoice == 4)) then --put a piece down!
+          board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
+          if (colorchoice == 3) then 
+            p2choice3 = curr_mouse_to_cell
+          elseif (colorchoice == 4) then
+            p2choice4 = curr_mouse_to_cell
+          end
+        end
+      end
+    end
+
+    --check whether the player is trying to delete their pieces (lshift)
+    if (btn(4, 1)) then
+      if (p2choice3 != nil) then
+        board[p2choice3[1]][p2choice3[2]] = 0
+        p2choice3 = nil
+      end
+      if (p2choice4 != nil) then
+        board[p2choice4[1]][p2choice4[2]] = 0
+        p2choice4 = nil
+      end      
+    end
+
+    --check whether the player wants to end their turn
+    if (btnp(5,1)) then
+        gamestate = "p2top1"
+        p2choice3 = nil
+        p2choice4 = nil
+        colorchoice = 0
+    end
+  end
+
+  if (gamestate == "p1top2") then
+    gamestate = "player2"
+  end
+
+  if (gamestate == "p2top1") then
+    gamestate = "player1"
   end
 end
 
@@ -301,6 +357,15 @@ function gems_draw()
 	for v in all(gems) do
 		sspr(2 * 8, 0, 10, 8, v.x, v.y, 10 * 2, 8 * 2)
 	end
+end
+
+
+function text_draw()
+    if (gamestate == "player1") then
+        print("player 1's turn", 35, 8, 7)
+    elseif (gamestate == "player2") then
+        print("player 2's turn", 35, 8, 7)
+    end
 end
 
 --returns the index of the closest cell to the mouse
