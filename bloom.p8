@@ -30,6 +30,10 @@ __lua__
 
   gamestate = "player1"
   colorchoice = 0
+  p1choice1 = nil
+  p1choice2 = nil
+  p2choice1 = nil
+  p2choice2 = nil
 
 
   --board setup
@@ -51,7 +55,7 @@ __lua__
     end
   end
 
-  --board[3][3] = 2
+ -- board[3][3] = 2
   --board[3][4] = 3
   --board[2][4] = 1
   --board[1][4] = 4
@@ -117,9 +121,10 @@ function _update60()
 	upd_keys()
   mouse_update()
 
+  cells_update()
   game_update()
 
-  cells_update()
+
 
 	
 	
@@ -178,6 +183,32 @@ function game_update()
   if (gamestate == "player1") then
     if (is_pressed(4)) colorchoice = 1
     if (is_pressed(5)) colorchoice = 2
+
+    --check whether a piece should be put down
+    if (is_pressed(6)) then
+      if (curr_mouse_to_cell != nil and board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] == 0)  then
+        if ((p1choice1 == nil and colorchoice == 1) or (p1choice2 == nil and colorchoice == 2)) then --put a piece down!
+          board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
+          if (colorchoice == 1) then 
+            p1choice1 = curr_mouse_to_cell
+          elseif (colorchoice == 2) then
+            p1choice2 = curr_mouse_to_cell
+          end
+        end
+      end
+    end
+
+    --check whether the player is trying to delete their pieces (lshift)
+    if (btn(4, 1)) then
+      if (p1choice1 != nil) then
+        board[p1choice1[1]][p1choice1[2]] = 0
+        p1choice1 = nil
+      end
+      if (p1choice2 != nil) then
+        board[p1choice2[1]][p1choice2[2]] = 0
+        p1choice2 = nil
+      end      
+    end
   end
 end
 
@@ -191,7 +222,7 @@ end
 
 function cells_init()
   for i = 1, 37 do
-    add(cells, cell_create(cell_coords[i][1], cell_coords[i][2] - 0.01), i) --the -0.01 is cheating a bit, lol! 
+    add(cells, cell_create(cell_coords[i][1], cell_coords[i][2] - 0.01), i) --the -0.01 is cheating a bit, lol
   end
 end
 
@@ -242,9 +273,10 @@ function cells_draw()
       spr(11, v.x + 1, v.y + 2, 2, 2)
     end
 
-
+    --todo: fix this trash
+    --draw an icon indicating the color tile that will be put in this cell if you click
     local curcell = curr_mouse_to_cell
-    if (curcell != nil and board[curcell[1]][curcell[2]] == 0) then
+    if (curcell != nil and board[curcell[1]][curcell[2]] == 0 and (currcell == index_to_board_coords(board_index))) then
       circfill(v.x + 8, v.y + 8, 1, colorchoice_to_color(colorchoice))
     end
 
@@ -292,12 +324,7 @@ end
 ]]
 
 --returns the index of the closest cell to the mouse
---should be called after the blank cells are drawn
 function mouse_to_cell_coords()
-  --if (pget(mouse.x, mouse.y) == 12) return nil --mouse is on the sky
-  --if (mouse.y > 104) return nil --mouse is below the board
-  --if ((mouse.x < 33) and (mouse.y > (34 / 25 * mouse.x + 52))) return nil --mouse is below the left diagonal
-  --if ((mouse.x > 96) and (mouse.y > (-34 / 25 * mouse.x + 228))) return nil --mouse is below the right diagonal
   local h = 64
   local k = 60
   local a = 54
@@ -321,12 +348,14 @@ end
 
 
 --returns the indices into the board table of the cell under the mouse 
+--returns coords as a table {i,j}
 function mouse_to_cell()
   local coords_index = mouse_to_cell_coords()
   if (coords_index == nil) return nil
   return index_to_board_coords(coords_index)
 end
 
+--helper function for mouse_to_cell()
 --takes an index i, where 1 is the topleft most hex, 2 is to the right of that, etc
 --returns coords as a table {i,j}
 function index_to_board_coords(index)
