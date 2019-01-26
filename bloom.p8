@@ -338,6 +338,23 @@ function game_update()
 ]]
 
     --now we have a table containing all the enemy blooms on the board!
+    --check to see if any of them should be destroyed
+    for bloom in all(bloomtable) do
+     alive = false
+     for piece in all(bloom) do
+      if (is_there_an_empty_neighbor(piece)) then
+        alive = true
+        break
+      end 
+     end
+     if (not alive) then
+      --kill bloom!!
+      for piece in all(bloom) do
+       board[piece[1]][piece[2]] = 0
+      end
+     end
+
+    end
 
     gamestate = "player2"
   end
@@ -553,6 +570,18 @@ function findbloom(i, j, bloom)
   printh("piececolor: "..piececolor)
   printh(" ")
 ]]
+end
+
+function is_there_an_empty_neighbor(piece)
+  if ((piece[2] > 1 and board[piece[1]][piece[2] - 1] == 0) or
+      (piece[1] < 7 and piece[2] > 1 and board[piece[1] + 1][piece[2] - 1] == 0) or
+      (piece[1] < 7 and board[piece[1] + 1][piece[2]] == 0) or
+      (piece[2] < 7 and board[piece[1]][piece[2] + 1] == 0) or
+      (piece[1] > 1 and piece[2] < 7 and board[piece[1] - 1][piece[2] + 1] == 0) or
+      (piece[1] > 1 and board[piece[1] - 1][piece[2]] == 0)) 
+  then return true
+  else return false
+  end
 end
 
 
