@@ -115,6 +115,8 @@ function _init()
 	init_keys()
 	mouse_init()
 	cells_init()
+
+  gamestate = "turn1"
 end
 
 function _update60()
@@ -181,6 +183,46 @@ function mouse_draw()
 end	
 
 function game_update()
+
+  if (gamestate == "turn1") then
+    if (is_pressed(4)) colorchoice = 1
+    if (is_pressed(5)) colorchoice = 2
+
+    --check whether a piece should be put down
+    if (is_pressed(6)) then
+      if (curr_mouse_to_cell != nil and board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] == 0)  then
+        if ((p1choice1 == nil and p1choice2 == nil and colorchoice == 1) or (p1choice1 == nil and p1choice2 == nil and colorchoice == 2)) then --put a piece down!
+          board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
+          if (colorchoice == 1) then 
+            p1choice1 = curr_mouse_to_cell
+          elseif (colorchoice == 2) then
+            p1choice2 = curr_mouse_to_cell
+          end
+        end
+      end
+    end
+
+    --check whether the player is trying to delete their pieces (lshift)
+    if (btn(4, 1)) then
+      if (p1choice1 != nil) then
+        board[p1choice1[1]][p1choice1[2]] = 0
+        p1choice1 = nil
+      end
+      if (p1choice2 != nil) then
+        board[p1choice2[1]][p1choice2[2]] = 0
+        p1choice2 = nil
+      end      
+    end
+
+    --check whether the player wants to end their turn
+    if (btnp(5,1) and (p1choice1 != nil or p1choice2 != nil)) then
+        gamestate = "p1top2"
+        p1choice1 = nil
+        p1choice2 = nil
+        colorchoice = 0
+    end
+  end
+
   if (gamestate == "player1") then
     if (is_pressed(4)) colorchoice = 1
     if (is_pressed(5)) colorchoice = 2
@@ -212,7 +254,7 @@ function game_update()
     end
 
     --check whether the player wants to end their turn
-    if (btnp(5,1)) then
+    if (btnp(5,1) and (p1choice1 != nil or p1choice2 != nil)) then
         gamestate = "p1top2"
         p1choice1 = nil
         p1choice2 = nil
@@ -251,7 +293,7 @@ function game_update()
     end
 
     --check whether the player wants to end their turn
-    if (btnp(5,1)) then
+    if (btnp(5,1) and (p2choice3 != nil or p2choice4 != nil)) then
         gamestate = "p2top1"
         p2choice3 = nil
         p2choice4 = nil
@@ -260,6 +302,43 @@ function game_update()
   end
 
   if (gamestate == "p1top2") then
+    bloomtable = {}
+    for i = 1, 7 do
+      for j = 1, 7 do
+        if (board[i][j] > 0)  then --a piece is here!
+          --check if this piece is already in a bloom we know about
+          found = false
+          for bloomy in all(bloomtable) do
+            for piece in all(bloomy) do
+              if (piece[1] == i and piece[2] == j) then
+                found = true
+              end
+            end
+          end
+
+          --only add enemy blooms to the table
+          if ((not found) and (board[i][j] == 3 or board[i][j] == 4)) then
+            bloom = {}
+            findbloom(i, j, bloom)
+            add(bloomtable, bloom)
+          end
+        end
+      end
+    end
+
+    --print blooms for debug
+--[[  
+    printh(" ")
+    for bloom in all(bloomtable) do
+     for piece in all(bloom) do
+      printh(piece[1].." "..piece[2])
+     end
+     printh(" ")
+    end
+]]
+
+    --now we have a table containing all the enemy blooms on the board!
+
     gamestate = "player2"
   end
 
@@ -361,6 +440,10 @@ end
 
 
 function text_draw()
+    if (gamestate == "turn1") then
+      print("player 1's turn", 35, 8, 7)
+      print("place one piece!", 34, 16, 7)
+    end
     if (gamestate == "player1") then
         print("player 1's turn", 35, 8, 7)
     elseif (gamestate == "player2") then
@@ -440,6 +523,36 @@ function colorchoice_to_color(c)
   if (c == 2) return 8
   if (c == 3) return 11
   if (c == 4) return 13
+end
+
+
+--make sure to pass in an empty table
+function findbloom(i, j, bloom)
+  --printh("findbloom "..i.." "..j)
+  --check if piece is already in bloom
+  for piece in all(bloom) do
+    if (piece[1] == i and piece[2] == j) return
+  end
+
+  --piece is not already in bloom! so add it~
+  add(bloom, {i, j})
+  piececolor = board[i][j]
+
+  --look for same-color pieces around this piece
+  if (j > 1 and board[i][j - 1] == piececolor) findbloom(i, j - 1, bloom)
+  if (i < 7 and j > 1 and board[i + 1][j - 1] == piececolor) findbloom(i + 1, j - 1, bloom)
+  if (i < 7 and board[i + 1][j] == piececolor) findbloom(i + 1, j, bloom)
+  if (j < 7 and board[i][j + 1] == piececolor) findbloom(i, j + 1, bloom)
+  if (i > 1 and j < 7 and board[i - 1][j + 1] == piececolor) findbloom(i - 1, j + 1, bloom)
+  if (i > 1 and board[i - 1][j] == piececolor) findbloom(i - 1, j, bloom)
+
+--[[
+  for piece in all(bloom) do
+   printh("("..piece[1]..","..piece[2]..") ")
+  end
+  printh("piececolor: "..piececolor)
+  printh(" ")
+]]
 end
 
 
