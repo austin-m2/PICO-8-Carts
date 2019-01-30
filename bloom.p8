@@ -41,6 +41,8 @@ __lua__
   p2score = 0
   maxscore = 15
 
+  cpu = 0
+
 
   --board setup
   -- -1 means the cell is off the board
@@ -130,13 +132,33 @@ function _init()
 end
 
 function _update60()
+  cpu = 0
+
 	upd_keys()
+  printh(stat(1) - cpu..": upd_keys()")
+  cpu = stat(1)
+
   mouse_update()
+  printh(stat(1) - cpu..": mouse_update()")
+  cpu = stat(1)
+
 
   cells_update()
+  printh(stat(1) - cpu..": cells_update()")
+  cpu = stat(1)
+
+
   game_update()
+  printh(stat(1) - cpu..": game_update()")
+  cpu = stat(1)
+
   columns_update()
+  printh(stat(1) - cpu..": columns_update()")
+  cpu = stat(1)
+
   buttons_update()
+  printh(stat(1) - cpu..": buttons_update()")
+  cpu = stat(1)
 
 
 
@@ -148,10 +170,22 @@ function _draw()
   --draw background
 	rectfill(0,0,127,127,12)
 
+  cpu = stat(1)
+
 
   columns_draw()
+  printh(stat(1) - cpu..": columns_draw()")
+  cpu = stat(1)
+
+
   cells_draw()
+  printh(stat(1) - cpu..": cells_draw()")
+  cpu = stat(1)
+
+
   buttons_draw()
+  printh(stat(1) - cpu..": buttons_draw()")
+  cpu = stat(1)
 
   --print coordinates of cell under mouse
 --[[
@@ -161,8 +195,12 @@ function _draw()
   end
 ]]
   text_draw()
+  printh(stat(1) - cpu..": text_draw()")
+  cpu = stat(1)
+
 	--gems_draw()
 	mouse_draw()
+  printh(stat(1) - cpu..": cells_draw()\n\n\n")
 
 
   --print(mouse.x, 0, 0, 7)
@@ -171,14 +209,12 @@ function _draw()
 
   if (gamestate == "end") then
     if (p1score > p2score) then
-      print("player 1 wins~!", 36, 8, 7)
+      bold_print("player 1 wins~!", 36, 8, 7)
     else
-      print("player 2 wins~!", 36, 8, 7)
+      bold_print("player 2 wins~!", 36, 8, 7)
     end
   end
-
-
-
+  
 end
 
 function mouse_init() 
@@ -202,15 +238,17 @@ function mouse_update()
     mouse.x = stat(32)
     mouse.y = stat(33)
   else
-    if (is_held(0)) mouse.x -= 1.5
-    if (is_held(1)) mouse.x += 1.5
-    if (is_held(2)) mouse.y -= 1.5
-    if (is_held(3)) mouse.y += 1.5
+    if (is_held(0)) mouse.x -= 1
+    if (is_held(1)) mouse.x += 1
+    if (is_held(2)) mouse.y -= 1
+    if (is_held(3)) mouse.y += 1
   end
 
-
+  cpu = stat(1)
   curr_mouse_to_cell = mouse_to_cell()
-  curr_mouse_to_cell_coords = mouse_to_cell_coords()
+  --curr_mouse_to_cell_coords = mouse_to_cell_coords()
+
+  printh(stat(1) - cpu..": mouse_to_cell() and mouse_to_cell_coords()")
 end
 
 function mouse_draw()
@@ -232,7 +270,7 @@ function game_update()
     --check if player is choosing a color
     --if (is_pressed(4)) colorchoice = 1
     --if (is_pressed(5)) colorchoice = 2
-    if (is_pressed(6) and dist(mouse.x, mouse.y, left_column_pos[1] + 8, left_column_pos[2] + 8) < 7.5) then
+    if ((is_pressed(6) or is_pressed(4)) and dist(mouse.x, mouse.y, left_column_pos[1] + 8, left_column_pos[2] + 8) < 7.5) then
       if (p1choice1 == nil and mouse.x < left_column_pos[1] + 8) then 
         colorchoice = 2
         left_column_pos[2] += 3
@@ -243,7 +281,7 @@ function game_update()
       end
 
     --check whether a piece should be put down
-    elseif (is_pressed(6)) then
+    elseif ((is_pressed(6) or is_pressed(4))) then
       if (curr_mouse_to_cell != nil and board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] == 0)  then
         if ((p1choice1 == nil and p1choice2 == nil and colorchoice == 1) or (p1choice1 == nil and p1choice2 == nil and colorchoice == 2)) then --put a piece down!
           board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
@@ -257,7 +295,7 @@ function game_update()
     end
 
     --check whether the player is trying to delete their pieces (lshift)
-    if (is_pressed(6) and is_mouse_inside_button(undo_button_pos)) then
+    if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(undo_button_pos)) then
     --if (btn(4, 1)) then
       if (p1choice1 != nil) then
         board[p1choice1[1]][p1choice1[2]] = 0
@@ -271,7 +309,7 @@ function game_update()
     end
 
     --check whether the player wants to end their turn
-    if (is_pressed(6) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
+    if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
         gamestate = "p1top2"
         p1choice1 = nil
         p1choice2 = nil
@@ -293,7 +331,7 @@ function game_update()
     --check if player is choosing a color
     --if (is_pressed(4)) colorchoice = 1
     --if (is_pressed(5)) colorchoice = 2
-    if (is_pressed(6) and dist(mouse.x, mouse.y, left_column_pos[1] + 8, left_column_pos[2] + 8) < 7.5) then
+    if ((is_pressed(6) or is_pressed(4)) and dist(mouse.x, mouse.y, left_column_pos[1] + 8, left_column_pos[2] + 8) < 7.5) then
       if (p1choice2 == nil and mouse.x < left_column_pos[1] + 8) then
         colorchoice = 2
         left_column_pos[2] += 3
@@ -304,7 +342,7 @@ function game_update()
       end
 
     --check whether a piece should be put down
-    elseif (is_pressed(6)) then
+    elseif ((is_pressed(6) or is_pressed(4))) then
       if (curr_mouse_to_cell != nil and board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] == 0)  then
         if ((p1choice1 == nil and colorchoice == 1) or (p1choice2 == nil and colorchoice == 2)) then --put a piece down!
           board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
@@ -318,7 +356,7 @@ function game_update()
     end
 
     --check whether the player is trying to delete their pieces (lshift)
-    if (is_pressed(6) and is_mouse_inside_button(undo_button_pos)) then
+    if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(undo_button_pos)) then
     --if (btn(4, 1)) then
       if (p1choice1 != nil) then
         board[p1choice1[1]][p1choice1[2]] = 0
@@ -332,7 +370,7 @@ function game_update()
     end
 
     --check whether the player wants to end their turn
-    if (is_pressed(6) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
+    if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
     --if (btnp(5,1) and (p1choice1 != nil or p1choice2 != nil)) then
         gamestate = "p1top2"
         p1choice1 = nil
@@ -345,7 +383,7 @@ function game_update()
     --check if player is choosing a color
     --if (is_pressed(4)) colorchoice = 3
     --if (is_pressed(5)) colorchoice = 4
-    if (is_pressed(6) and dist(mouse.x, mouse.y, right_column_pos[1] + 8, right_column_pos[2] + 8) < 7.5) then
+    if ((is_pressed(6) or is_pressed(4)) and dist(mouse.x, mouse.y, right_column_pos[1] + 8, right_column_pos[2] + 8) < 7.5) then
       if (p2choice3 == nil and mouse.x < right_column_pos[1] + 8) then
         colorchoice = 3
         right_column_pos[2] += 3
@@ -356,7 +394,7 @@ function game_update()
       end
 
     --check whether a piece should be put down
-    elseif (is_pressed(6)) then
+    elseif ((is_pressed(6) or is_pressed(4))) then
       if (curr_mouse_to_cell != nil and board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] == 0)  then
         if ((p2choice3 == nil and colorchoice == 3) or (p2choice4 == nil and colorchoice == 4)) then --put a piece down!
           board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
@@ -370,7 +408,7 @@ function game_update()
     end
 
     --check whether the player is trying to delete their pieces (lshift)
-    if (is_pressed(6) and is_mouse_inside_button(undo_button_pos)) then
+    if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(undo_button_pos)) then
     --if (btn(4, 1)) then
       if (p2choice3 != nil) then
         board[p2choice3[1]][p2choice3[2]] = 0
@@ -384,7 +422,7 @@ function game_update()
     end
 
     --check whether the player wants to end their turn
-    if (is_pressed(6) and is_mouse_inside_button(go_button_pos) and (p2choice3 != nil or p2choice4 != nil)) then
+    if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(go_button_pos) and (p2choice3 != nil or p2choice4 != nil)) then
     --if (btnp(5,1) and (p2choice3 != nil or p2choice4 != nil)) then
         gamestate = "p2top1"
         p2choice3 = nil
@@ -557,7 +595,7 @@ function cells_update()
   cells[closestcell].y = lerp(cells[closestcell].y, cell_coords[closestcell][2] - 7, 0.015)
 
   --push the cell downward when you click
-  if (is_pressed(6)) then
+  if ((is_pressed(6) or is_pressed(4))) then
     --cells[closestcell].y = lerp(cells[closestcell].y, cell_coords[closestcell][2] + 20, 0.05)
     cells[closestcell].y = cell_coords[closestcell][2] + 4
   end
@@ -569,12 +607,22 @@ function cells_draw()
 
   local board_index = 1
 	for v in all(cells) do
-    rectfill(v.x + 1, v.y + 13, v.x + 7, 127, 6)
-    rectfill(v.x + 9, v.y + 13, v.x + 15, 127, 5)
-    line(v.x, v.y + 12, v.x, 127, 0)
-    line(v.x + 8, v.y + 15, v.x + 8, 127, 0)
-    line(v.x + 16, v.y + 12, v.x + 16, 127, 0)
+
+    if (board_index == 16 or board_index == 23 or board_index == 29 or board_index == 34 or board_index == 35 or board_index == 36 or board_index == 37 or board_index == 33 or board_index == 28 or board_index == 22) then
+      rectfill(v.x + 1, v.y + 13, v.x + 7, 127, 6)
+      rectfill(v.x + 9, v.y + 13, v.x + 15, 127, 5)
+      line(v.x, v.y + 12, v.x, 127, 0)
+      line(v.x + 8, v.y + 15, v.x + 8, 127, 0)
+      line(v.x + 16, v.y + 12, v.x + 16, 127, 0)
+    else
+      rectfill(v.x + 1, v.y + 13, v.x + 7, v.y + 16, 6)
+      rectfill(v.x + 9, v.y + 13, v.x + 15, v.y + 16, 5)
+      line(v.x, v.y + 12, v.x, v.y + 15, 0)
+      line(v.x + 8, v.y + 15, v.x + 8, v.y + 18, 0)
+      line(v.x + 16, v.y + 12, v.x + 16, v.y + 15, 0)
+    end
 		sspr(cell.spritesheet_x, cell.spritesheet_y, cell.width, cell.height, v.x, v.y, cell.width, cell.height) --draw the actual empty cell
+
 
     --draw coordinate labels if online mode is on
     if (is_online_mode_enabled) then
@@ -761,7 +809,7 @@ end
 
 function gems_update()
 	gem_coords = curr_mouse_to_cell_coords
-	if (is_pressed(6)) then
+	if ((is_pressed(6) or is_pressed(4))) then
 
 		sfx(0)
 		add(gems, gem_coords)
@@ -838,6 +886,7 @@ end
 --returns coords as a table {i,j}
 function mouse_to_cell()
   local coords_index = mouse_to_cell_coords()
+  curr_mouse_to_cell_coords = coords_index
   if (coords_index == nil) return nil
   return index_to_board_coords(coords_index)
 end
@@ -902,10 +951,10 @@ function findbloom(i, j, bloom)
 
 --[[
   for piece in all(bloom) do
-   printh("("..piece[1]..","..piece[2]..") ")
+   --printh("("..piece[1]..","..piece[2]..") ")
   end
-  printh("piececolor: "..piececolor)
-  printh(" ")
+  --printh("piececolor: "..piececolor)
+  --printh(" ")
 ]]
 end
 
@@ -1062,7 +1111,7 @@ inverses = {
 
 __gfx__
 0000000070000000000000000000000006000000fffff99999fffffffffff88888fffffffffffbbbbbfffffffffffdddddffffff000008800000099000000000
-0000000077000000000088800000000006000000fff999999999fffffff888888888fffffffbbbbbbbbbfffffffdddddddddffff000888800009999000000000
+0000000077000000000088800000000006000000ffff9999999fffffffff8888888fffffffffbbbbbbbfffffffffdddddddfffff000888800009999000000000
 0070070077700000008888888000000006000000ff99999999999fffff88888888888fffffbbbbbbbbbbbfffffdddddddddddfff008888800099999000000000
 0007700077770000088e88888200000006000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
 0007700000700000088888882200000006000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
@@ -1071,8 +1120,8 @@ __gfx__
 00000000000000000000222000000000e6000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
 ffffffffffffffffffffffffffffffff06000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
 ffffff00000ffffffffffffff75fffff06000000449999999999944f228888888888822f33bbbbbbbbbbb33f11ddddddddddd11f228888804499999000000000
-ffff007777700ffffffffffff775ffff06000000ff49999999994fffff28888888882fffff3bbbbbbbbb3fffff1ddddddddd1fff002888800049999000000000
-fff07777777770fffffffffff7775fff06000000fff449999944fffffff228888822fffffff33bbbbb33fffffff11ddddd11ffff000228800004499000000000
+fffff0777770fffffffffffff775ffff06000000ff49999999994fffff28888888882fffff3bbbbbbbbb3fffff1ddddddddd1fff002888800049999000000000
+fff00777777700fffffffffff7775fff06000000fff449999944fffffff228888822fffffff33bbbbb33fffffff11ddddd11ffff000228800004499000000000
 f007777777777700fffffffff77775ff06000000fffff44444fffffffffff22222fffffffffff33333fffffffffff11111ffffff000002200000044000000000
 07777777777777770ffffffff5575fff06000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000
 07777777777777770ffffffffff575ff06000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000
