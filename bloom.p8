@@ -770,13 +770,13 @@ end
 function text_draw()
 
     if (gamestate == "turn1") then
-      print("player 1's turn", 35, 8, 7)
-      print("place one piece!", 34, 16, 7)
+      bold_print("player 1's turn", 35, 6, 7)
+      bold_print("place one piece!", 34, 14, 7)
     end
     if (gamestate == "player1") then
-        print("player 1's turn", 35, 8, 7)
+        bold_print("player 1's turn", 35, 8, 7)
     elseif (gamestate == "player2") then
-        print("player 2's turn", 35, 8, 7)
+        bold_print("player 2's turn", 35, 8, 7)
     end
 
 
@@ -921,11 +921,12 @@ end
 --used for printing the coordinate labels on the columns
 --highlights the text for the row and column under the mouse
 function s_print(str, x, y, col)
+--[[
   if (curr_mouse_to_cell != nil) then 
     print(curr_mouse_to_cell[1], 8, 8, 7)
     print(curr_mouse_to_cell[2], 16, 8, 7)
   end
-
+]]
   if (
     curr_mouse_to_cell != nil and (
     (str == "a" and (curr_mouse_to_cell[1] + curr_mouse_to_cell[2] == 5)) or
@@ -943,24 +944,24 @@ function s_print(str, x, y, col)
     (str == "6" and curr_mouse_to_cell[2] == 6) or
     (str == "7" and curr_mouse_to_cell[2] == 7)
       )) then
-    b_print(str, x, y, 0)
-    print(str, x, y, 14)
+    bold_print(str, x, y, 14)
   else
    print(str, x, y, col)
   end
 end
 
---prints a background for a string
-function b_print(str, x, y, col)
+--prints with a thickblack background
+function bold_print(str, x, y, col)
   palt(0, false)
-  print(str, x - 1, y - 1, col)
-  print(str, x - 1, y, col)
-  print(str, x - 1, y + 1, col)
-  print(str, x, y - 1, col)
-  print(str, x, y + 1, col)
-  print(str, x + 1, y - 1, col)
-  print(str, x + 1, y, col)
-  print(str, x + 1, y + 1, col)  
+  print(str, x - 1, y - 1, 0)
+  print(str, x - 1, y, 0)
+  print(str, x - 1, y + 1, 0)
+  print(str, x, y - 1, 0)
+  print(str, x, y + 1, 0)
+  print(str, x + 1, y - 1, 0)
+  print(str, x + 1, y, 0)
+  print(str, x + 1, y + 1, 0)  
+  print(str, x, y, col)
 end
 
 
