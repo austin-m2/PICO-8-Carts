@@ -28,12 +28,18 @@ __lua__
 	cells = {}
 	gems = {}
 
+  controlstate = "mouse"
+  is_online_mode_enabled = true
+
   gamestate = "player1"
   colorchoice = 0
   p1choice1 = nil
   p1choice2 = nil
   p2choice1 = nil
   p2choice2 = nil
+  p1score = 0
+  p2score = 0
+  maxscore = 15
 
 
   --board setup
@@ -54,6 +60,8 @@ __lua__
       end
     end
   end
+
+
 
  -- board[3][3] = 2
   --board[3][4] = 3
@@ -115,6 +123,8 @@ function _init()
 	init_keys()
 	mouse_init()
 	cells_init()
+  columns_init()
+  buttons_init()
 
   gamestate = "turn1"
 end
@@ -125,6 +135,8 @@ function _update60()
 
   cells_update()
   game_update()
+  columns_update()
+  buttons_update()
 
 
 
@@ -136,21 +148,36 @@ function _draw()
   --draw background
 	rectfill(0,0,127,127,12)
 
+
+  columns_draw()
   cells_draw()
+  buttons_draw()
 
   --print coordinates of cell under mouse
+--[[
   if (curr_mouse_to_cell != nil) then 
     print(curr_mouse_to_cell[1], 0, 8, 7)
     print(curr_mouse_to_cell[2], 8, 8, 7)
   end
-
+]]
   text_draw()
 	--gems_draw()
 	mouse_draw()
 
 
-  print(mouse.x, 0, 0, 7)
-  print(mouse.y, 16, 0, 7)
+  --print(mouse.x, 0, 0, 7)
+  --print(mouse.y, 16, 0, 7)
+
+
+  if (gamestate == "end") then
+    if (p1score > p2score) then
+      print("player 1 wins~!", 36, 8, 7)
+    else
+      print("player 2 wins~!", 36, 8, 7)
+    end
+  end
+
+
 
 end
 
@@ -168,28 +195,55 @@ function mouse_init()
 end
 
 function mouse_update()
-	mouse.x = stat(32)
-	mouse.y = stat(33)
+  if (is_pressed(0) or is_pressed(1) or is_pressed(2) or (is_pressed(3))) controlstate = "keyboard"
+  if (is_pressed(6)) controlstate = "mouse"
+
+  if (controlstate == "mouse") then
+    mouse.x = stat(32)
+    mouse.y = stat(33)
+  else
+    if (is_held(0)) mouse.x -= 1.5
+    if (is_held(1)) mouse.x += 1.5
+    if (is_held(2)) mouse.y -= 1.5
+    if (is_held(3)) mouse.y += 1.5
+  end
+
+
   curr_mouse_to_cell = mouse_to_cell()
   curr_mouse_to_cell_coords = mouse_to_cell_coords()
 end
 
 function mouse_draw()
+--[[
 	for v in all(mouse_pixels) do
 		local x = mouse.x + v[1]
 		local y = mouse.y + v[2]
 		pset(x, y, inverses_dark[pget(x, y) + 1])
 	end
+]]
+palt(0, false)
+palt(15, true)
+spr(51, mouse.x, mouse.y)
 end	
 
 function game_update()
 
   if (gamestate == "turn1") then
-    if (is_pressed(4)) colorchoice = 1
-    if (is_pressed(5)) colorchoice = 2
+    --check if player is choosing a color
+    --if (is_pressed(4)) colorchoice = 1
+    --if (is_pressed(5)) colorchoice = 2
+    if (is_pressed(6) and dist(mouse.x, mouse.y, left_column_pos[1] + 8, left_column_pos[2] + 8) < 7.5) then
+      if (p1choice1 == nil and mouse.x < left_column_pos[1] + 8) then 
+        colorchoice = 2
+        left_column_pos[2] += 3
+      end 
+      if (p1choice2 == nil and mouse.x > left_column_pos[1] + 8) then 
+        colorchoice = 1
+        left_column_pos[2] += 3
+      end
 
     --check whether a piece should be put down
-    if (is_pressed(6)) then
+    elseif (is_pressed(6)) then
       if (curr_mouse_to_cell != nil and board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] == 0)  then
         if ((p1choice1 == nil and p1choice2 == nil and colorchoice == 1) or (p1choice1 == nil and p1choice2 == nil and colorchoice == 2)) then --put a piece down!
           board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
@@ -203,7 +257,8 @@ function game_update()
     end
 
     --check whether the player is trying to delete their pieces (lshift)
-    if (btn(4, 1)) then
+    if (is_pressed(6) and is_mouse_inside_button(undo_button_pos)) then
+    --if (btn(4, 1)) then
       if (p1choice1 != nil) then
         board[p1choice1[1]][p1choice1[2]] = 0
         p1choice1 = nil
@@ -211,11 +266,12 @@ function game_update()
       if (p1choice2 != nil) then
         board[p1choice2[1]][p1choice2[2]] = 0
         p1choice2 = nil
-      end      
+      end  
+      colorchoice = 0    
     end
 
     --check whether the player wants to end their turn
-    if (btnp(5,1) and (p1choice1 != nil or p1choice2 != nil)) then
+    if (is_pressed(6) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
         gamestate = "p1top2"
         p1choice1 = nil
         p1choice2 = nil
@@ -223,12 +279,32 @@ function game_update()
     end
   end
 
+--[[
+    if (btnp(5,1) and (p1choice1 != nil or p1choice2 != nil)) then
+        gamestate = "p1top2"
+        p1choice1 = nil
+        p1choice2 = nil
+        colorchoice = 0
+    end
+  end
+]]
+
   if (gamestate == "player1") then
-    if (is_pressed(4)) colorchoice = 1
-    if (is_pressed(5)) colorchoice = 2
+    --check if player is choosing a color
+    --if (is_pressed(4)) colorchoice = 1
+    --if (is_pressed(5)) colorchoice = 2
+    if (is_pressed(6) and dist(mouse.x, mouse.y, left_column_pos[1] + 8, left_column_pos[2] + 8) < 7.5) then
+      if (p1choice2 == nil and mouse.x < left_column_pos[1] + 8) then
+        colorchoice = 2
+        left_column_pos[2] += 3
+      end
+      if (p1choice1 == nil and mouse.x > left_column_pos[1] + 8) then
+        colorchoice = 1
+        left_column_pos[2] += 3
+      end
 
     --check whether a piece should be put down
-    if (is_pressed(6)) then
+    elseif (is_pressed(6)) then
       if (curr_mouse_to_cell != nil and board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] == 0)  then
         if ((p1choice1 == nil and colorchoice == 1) or (p1choice2 == nil and colorchoice == 2)) then --put a piece down!
           board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
@@ -242,7 +318,8 @@ function game_update()
     end
 
     --check whether the player is trying to delete their pieces (lshift)
-    if (btn(4, 1)) then
+    if (is_pressed(6) and is_mouse_inside_button(undo_button_pos)) then
+    --if (btn(4, 1)) then
       if (p1choice1 != nil) then
         board[p1choice1[1]][p1choice1[2]] = 0
         p1choice1 = nil
@@ -250,11 +327,13 @@ function game_update()
       if (p1choice2 != nil) then
         board[p1choice2[1]][p1choice2[2]] = 0
         p1choice2 = nil
-      end      
+      end     
+      colorchoice = 0 
     end
 
     --check whether the player wants to end their turn
-    if (btnp(5,1) and (p1choice1 != nil or p1choice2 != nil)) then
+    if (is_pressed(6) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
+    --if (btnp(5,1) and (p1choice1 != nil or p1choice2 != nil)) then
         gamestate = "p1top2"
         p1choice1 = nil
         p1choice2 = nil
@@ -263,11 +342,21 @@ function game_update()
   end
 
   if (gamestate == "player2") then
-    if (is_pressed(4)) colorchoice = 3
-    if (is_pressed(5)) colorchoice = 4
+    --check if player is choosing a color
+    --if (is_pressed(4)) colorchoice = 3
+    --if (is_pressed(5)) colorchoice = 4
+    if (is_pressed(6) and dist(mouse.x, mouse.y, right_column_pos[1] + 8, right_column_pos[2] + 8) < 7.5) then
+      if (p2choice3 == nil and mouse.x < right_column_pos[1] + 8) then
+        colorchoice = 3
+        right_column_pos[2] += 3
+      end
+      if (p1choice4 == nil and mouse.x > right_column_pos[1] + 8) then 
+        colorchoice = 4
+        right_column_pos[2] += 3
+      end
 
     --check whether a piece should be put down
-    if (is_pressed(6)) then
+    elseif (is_pressed(6)) then
       if (curr_mouse_to_cell != nil and board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] == 0)  then
         if ((p2choice3 == nil and colorchoice == 3) or (p2choice4 == nil and colorchoice == 4)) then --put a piece down!
           board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
@@ -281,7 +370,8 @@ function game_update()
     end
 
     --check whether the player is trying to delete their pieces (lshift)
-    if (btn(4, 1)) then
+    if (is_pressed(6) and is_mouse_inside_button(undo_button_pos)) then
+    --if (btn(4, 1)) then
       if (p2choice3 != nil) then
         board[p2choice3[1]][p2choice3[2]] = 0
         p2choice3 = nil
@@ -290,10 +380,12 @@ function game_update()
         board[p2choice4[1]][p2choice4[2]] = 0
         p2choice4 = nil
       end      
+      colorchoice = 0
     end
 
     --check whether the player wants to end their turn
-    if (btnp(5,1) and (p2choice3 != nil or p2choice4 != nil)) then
+    if (is_pressed(6) and is_mouse_inside_button(go_button_pos) and (p2choice3 != nil or p2choice4 != nil)) then
+    --if (btnp(5,1) and (p2choice3 != nil or p2choice4 != nil)) then
         gamestate = "p2top1"
         p2choice3 = nil
         p2choice4 = nil
@@ -326,19 +418,9 @@ function game_update()
       end
     end
 
-    --print blooms for debug
---[[  
-    printh(" ")
-    for bloom in all(bloomtable) do
-     for piece in all(bloom) do
-      printh(piece[1].." "..piece[2])
-     end
-     printh(" ")
-    end
-]]
-
     --now we have a table containing all the enemy blooms on the board!
     --check to see if any of them should be destroyed
+    deadblooms = {}
     for bloom in all(bloomtable) do
      alive = false
      for piece in all(bloom) do
@@ -348,19 +430,91 @@ function game_update()
       end 
      end
      if (not alive) then
-      --kill bloom!!
-      for piece in all(bloom) do
-       board[piece[1]][piece[2]] = 0
-      end
+      --mark bloom for deletion
+      add(deadblooms, bloom)
      end
-
     end
 
-    gamestate = "player2"
+    --kill blooms that were marked for deletion
+    for bloom in all(deadblooms) do
+      for piece in all(bloom) do
+        board[piece[1]][piece[2]] = 0
+        cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 20
+        p1score += 1
+      end
+    end
+
+    if (p1score >= maxscore) then
+      gamestate = "end"
+    else
+      gamestate = "player2"
+    end
   end
 
   if (gamestate == "p2top1") then
-    gamestate = "player1"
+    bloomtable = {}
+    for i = 1, 7 do
+      for j = 1, 7 do
+        if (board[i][j] > 0)  then --a piece is here!
+          --check if this piece is already in a bloom we know about
+          found = false
+          for bloomy in all(bloomtable) do
+            for piece in all(bloomy) do
+              if (piece[1] == i and piece[2] == j) then
+                found = true
+              end
+            end
+          end
+
+          --only add enemy blooms to the table
+          if ((not found) and (board[i][j] == 1 or board[i][j] == 2)) then
+            bloom = {}
+            findbloom(i, j, bloom)
+            add(bloomtable, bloom)
+          end
+        end
+      end
+    end
+
+    --now we have a table containing all the enemy blooms on the board!
+    --check to see if any of them should be destroyed
+    deadblooms = {}
+    for bloom in all(bloomtable) do
+     alive = false
+     for piece in all(bloom) do
+      if (is_there_an_empty_neighbor(piece)) then
+        alive = true
+        break
+      end 
+     end
+     if (not alive) then
+      --mark bloom for deletion
+      add(deadblooms, bloom)
+     end
+    end
+
+    --kill blooms that were marked for deletion
+    for bloom in all(deadblooms) do
+      for piece in all(bloom) do
+        board[piece[1]][piece[2]] = 0
+        cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 20
+        p2score += 1
+      end
+    end
+
+    if (p2score >= maxscore) then
+      gamestate = "end"
+    else
+      gamestate = "player1"
+    end
+  end
+
+  if (gamestate == "end")  then
+    if (p1score > p2score) then
+      print("player 1 wins~!", 8, 16, 7)
+    else
+      print("player 2 wins~!", 8, 16, 7)
+    end
   end
 end
 
@@ -414,6 +568,36 @@ function cells_draw()
     line(v.x + 16, v.y + 12, v.x + 16, 127, 0)
 		sspr(cell.spritesheet_x, cell.spritesheet_y, cell.width, cell.height, v.x, v.y, cell.width, cell.height) --draw the actual empty cell
 
+    --draw coordinate labels if online mode is on
+    if (is_online_mode_enabled) then
+      if (board_index == 16) then
+        s_print("a", v.x + 3, v.y + 17, 5)
+      elseif(board_index == 23) then
+        s_print("b", v.x + 3, v.y + 17, 5)
+      elseif(board_index == 29) then
+        s_print("c", v.x + 3, v.y + 17, 5)
+      elseif(board_index == 34) then
+        s_print("d", v.x + 3, v.y + 17, 5)   
+        s_print("1", v.x + 11, v.y + 17, 6)
+      elseif(board_index == 35) then
+        s_print("e", v.x + 3, v.y + 17, 5)   
+        s_print("2", v.x + 11, v.y + 17, 6)
+      elseif(board_index == 36) then
+        s_print("f", v.x + 3, v.y + 17, 5)   
+        s_print("3", v.x + 11, v.y + 17, 6)    
+      elseif(board_index == 37) then
+        s_print("g", v.x + 3, v.y + 17, 5)   
+        s_print("4", v.x + 11, v.y + 17, 6)           
+      elseif(board_index == 33) then  
+        s_print("5", v.x + 11, v.y + 17, 6)   
+      elseif(board_index == 28) then  
+        s_print("6", v.x + 11, v.y + 17, 6)      
+      elseif(board_index == 22) then  
+        s_print("7", v.x + 11, v.y + 17, 6)                           
+      end
+    end
+
+
     local coords = index_to_board_coords(board_index)  
     if (board[coords[1]][coords[2]] == 1) then --draw tokens
       spr(5, v.x + 1, v.y + 2, 2, 2)
@@ -425,20 +609,147 @@ function cells_draw()
       spr(11, v.x + 1, v.y + 2, 2, 2)
     end
 
-    --todo: fix this trash
     --draw an icon indicating the color tile that will be put in this cell if you click
     local curcell = curr_mouse_to_cell
-    if (curcell != nil and board[curcell[1]][curcell[2]] == 0 and (currcell == index_to_board_coords(board_index))) then
-      circfill(v.x + 8, v.y + 8, 1, colorchoice_to_color(colorchoice))
+    if (curcell != nil and board[curcell[1]][curcell[2]] == 0 and (board_coords_to_index(curcell[1], curcell[2]) == board_index)) then
+      if (gamestate == "turn1") then
+        if (colorchoice != 0 and p1choice1 == nil and p1choice2 == nil) circfill(v.x + 8, v.y + 8, 1, colorchoice_to_color(colorchoice))
+      elseif ((colorchoice == 1 and p1choice1 == nil) or (colorchoice == 2 and p1choice2 == nil) or (colorchoice == 3 and p2choice3 == nil) or (colorchoice == 4 and p2choice4 == nil)) then 
+        circfill(v.x + 8, v.y + 8, 1, colorchoice_to_color(colorchoice))
+      end
     end
-
-
 
     board_index += 1
 	end
   palt()
-
 end
+
+function columns_init()
+  left_column_pos = {}
+  right_column_pos = {}
+  left_column_orig_pos = {11, 21}
+  right_column_orig_pos = {101, 21}
+  left_column_pos[1] = left_column_orig_pos[1]
+  left_column_pos[2] = left_column_orig_pos[2]
+  right_column_pos[1] = right_column_orig_pos[1]
+  right_column_pos[2] = right_column_orig_pos[2]
+end
+
+function columns_draw()
+  palt(0, false)
+  palt(15, true)
+
+  --draw left column
+  rectfill(left_column_pos[1] + 1, left_column_pos[2] + 10, left_column_pos[1] + 7, 127, 6)
+  rectfill(left_column_pos[1] + 9, left_column_pos[2] + 13, left_column_pos[1] + 15, 127, 5)
+  line(left_column_pos[1], left_column_pos[2] + 12, left_column_pos[1], 127, 0)
+  line(left_column_pos[1] + 8, left_column_pos[2] + 12, left_column_pos[1] + 8, 127, 0)
+  line(left_column_pos[1] + 16, left_column_pos[2] + 12, left_column_pos[1] + 16, 127, 0)
+  spr(37, left_column_pos[1], left_column_pos[2], 3, 2)
+
+  --draw right column
+  rectfill(right_column_pos[1] + 1, right_column_pos[2] + 10, right_column_pos[1] + 7, 127, 6)
+  rectfill(right_column_pos[1] + 9, right_column_pos[2] + 13, right_column_pos[1] + 15, 127, 5)
+  line(right_column_pos[1], right_column_pos[2] + 12, right_column_pos[1], 127, 0)
+  line(right_column_pos[1] + 8, right_column_pos[2] + 12, right_column_pos[1] + 8, 127, 0)
+  line(right_column_pos[1] + 16, right_column_pos[2] + 12, right_column_pos[1] + 16, 127, 0)
+  spr(40, right_column_pos[1], right_column_pos[2], 3, 2)
+
+
+  --draw pieces on columns
+  palt(0, true)
+  if (gamestate == "turn1") then
+    if (p1choice1 == nil and p1choice2 == nil) then
+      if (colorchoice != 2) spr(13, left_column_pos[1] + 1, left_column_pos[2] + 2, 1, 2)
+      if (colorchoice != 1) spr(14, left_column_pos[1] + 8, left_column_pos[2] + 2, 1, 2, true)
+    end
+  elseif (gamestate == "player1") then
+    if (p1choice2 == nil and colorchoice != 2) spr(13, left_column_pos[1] + 1, left_column_pos[2] + 2, 1, 2)
+    if (p1choice1 == nil and colorchoice != 1) spr(14, left_column_pos[1] + 8, left_column_pos[2] + 2, 1, 2, true)
+  elseif (gamestate == "player2") then
+    if (p2choice3 == nil and colorchoice != 3) spr(45, right_column_pos[1] + 1, right_column_pos[2] + 2, 1, 2)
+    if (p2choice4 == nil and colorchoice != 4) spr(46, right_column_pos[1] + 8, right_column_pos[2] + 2, 1, 2, true)
+  end
+
+  --set color of scores depending on whose turn it is
+  if (gamestate == "player1" or gamestate == "turn1") then
+    p1textcol = 7
+    p2textcol = 5
+  elseif (gamestate == "player2") then
+    p1textcol = 5
+    p2textcol = 7
+  end
+
+
+  --draw black rectangle backdrop behind scores, then draw scores
+  if (p1score < 10) then 
+    rectfill(left_column_pos[1] + 6, left_column_pos[2] + 5, left_column_pos[1] + 10, left_column_pos[2] + 11, 0)
+    print(p1score, left_column_pos[1] + 7, left_column_pos[2] + 6, p1textcol)
+  else 
+    rectfill(left_column_pos[1] + 4, left_column_pos[2] + 5, left_column_pos[1] + 12, left_column_pos[2] + 11, 0) 
+    print(p1score, left_column_pos[1] + 5, left_column_pos[2] + 6, p1textcol)
+  end
+
+  if (p2score < 10) then 
+    rectfill(right_column_pos[1] + 6, right_column_pos[2] + 5, right_column_pos[1] + 10, right_column_pos[2] + 11, 0)
+    print(p2score, right_column_pos[1] + 7, right_column_pos[2] + 6, p2textcol)
+  else 
+    rectfill(right_column_pos[1] + 4, right_column_pos[2] + 5, right_column_pos[1] + 12, right_column_pos[2] + 11, 0) 
+    print(p2score, right_column_pos[1] + 5, right_column_pos[2] + 6, p2textcol)
+  end
+end
+
+function columns_update()
+  left_column_pos[2] = lerp(left_column_pos[2], left_column_orig_pos[2] - p1score, 0.02)
+  right_column_pos[2] = lerp(right_column_pos[2], right_column_orig_pos[2] - p2score, 0.02)
+end
+
+function buttons_init()
+  undo_button_pos = {}
+  go_button_pos = {}
+  undo_button_on_pos = {35, 110}
+  undo_button_off_pos = {35, 130}
+  go_button_on_pos = {67, 110}
+  go_button_off_pos = {67, 130}
+  undo_button_pos[1] = undo_button_off_pos[1]
+  undo_button_pos[2] = undo_button_off_pos[2]
+  go_button_pos[1] = go_button_off_pos[1]
+  go_button_pos[2] = go_button_off_pos[2]
+  button_speed = 0.05
+end
+
+function buttons_update()
+  if (gamestate == "turn1") then
+    if (p1choice1 != nil or p1choice2 != nil) then
+      undo_button_pos[2] = lerp(undo_button_pos[2], undo_button_on_pos[2], button_speed)
+      go_button_pos[2] = lerp(go_button_pos[2], go_button_on_pos[2], button_speed)
+    else
+      undo_button_pos[2] = lerp(undo_button_pos[2], undo_button_off_pos[2], button_speed)
+      go_button_pos[2] = lerp(go_button_pos[2], go_button_off_pos[2], button_speed)
+    end
+  else
+    if (p1choice1 != nil or p1choice2 != nil or p2choice3 != nil or p2choice4 != nil) then
+      undo_button_pos[2] = lerp(undo_button_pos[2], undo_button_on_pos[2], button_speed)
+      go_button_pos[2] = lerp(go_button_pos[2], go_button_on_pos[2], button_speed)
+    else
+      undo_button_pos[2] = lerp(undo_button_pos[2], undo_button_off_pos[2], button_speed)
+      go_button_pos[2] = lerp(go_button_pos[2], go_button_off_pos[2], button_speed)
+    end
+  end
+end
+
+function buttons_draw()
+  palt(0, false)
+  palt(15, true)
+  if (is_mouse_inside_button(undo_button_pos)) pal(7, 10)
+  sspr(0, 32, 27, 11, undo_button_pos[1], undo_button_pos[2]) --draw undo button
+  pal(7, 7)
+  if (is_mouse_inside_button(go_button_pos)) pal(7, 10)
+  sspr(32, 32, 27, 11, go_button_pos[1], go_button_pos[2]) --draw go button
+  pal()
+  palt()
+end
+
 
 function gems_update()
 	gem_coords = curr_mouse_to_cell_coords
@@ -457,6 +768,7 @@ end
 
 
 function text_draw()
+
     if (gamestate == "turn1") then
       print("player 1's turn", 35, 8, 7)
       print("place one piece!", 34, 16, 7)
@@ -466,6 +778,8 @@ function text_draw()
     elseif (gamestate == "player2") then
         print("player 2's turn", 35, 8, 7)
     end
+
+
 end
 
 --returns the index of the closest cell to the mouse
@@ -535,6 +849,21 @@ function index_to_board_coords(index)
   end
 end
 
+--takes a table {i, j}
+--returns an index i, where 1 is the topleft most hex, 2 is to the right of that, etc
+function board_coords_to_index(i, j)
+  counter = 0
+  for a = 1, 7 do
+    for b = 1, 7 do
+      if (not ((a + b < 5) or (a + b > 11))) then
+        counter += 1
+      end
+      if (i == a and j == b) return counter
+    end
+  end
+end
+
+
 function colorchoice_to_color(c)
   if (c == 1) return 9
   if (c == 2) return 8
@@ -582,6 +911,56 @@ function is_there_an_empty_neighbor(piece)
   then return true
   else return false
   end
+end
+
+function is_mouse_inside_button(button_pos)
+  return (mouse.x > button_pos[1] and mouse.x < button_pos[1] + 27 and mouse.y > button_pos[2] and mouse.y < button_pos[2] + 11)
+end
+
+--special print!
+--used for printing the coordinate labels on the columns
+--highlights the text for the row and column under the mouse
+function s_print(str, x, y, col)
+  if (curr_mouse_to_cell != nil) then 
+    print(curr_mouse_to_cell[1], 8, 8, 7)
+    print(curr_mouse_to_cell[2], 16, 8, 7)
+  end
+
+  if (
+    curr_mouse_to_cell != nil and (
+    (str == "a" and (curr_mouse_to_cell[1] + curr_mouse_to_cell[2] == 5)) or
+    (str == "b" and (curr_mouse_to_cell[1] + curr_mouse_to_cell[2] == 6)) or
+    (str == "c" and (curr_mouse_to_cell[1] + curr_mouse_to_cell[2] == 7)) or
+    (str == "d" and (curr_mouse_to_cell[1] + curr_mouse_to_cell[2] == 8)) or
+    (str == "e" and (curr_mouse_to_cell[1] + curr_mouse_to_cell[2] == 9)) or
+    (str == "f" and (curr_mouse_to_cell[1] + curr_mouse_to_cell[2] == 10)) or
+    (str == "g" and (curr_mouse_to_cell[1] + curr_mouse_to_cell[2] == 11)) or
+    (str == "1" and curr_mouse_to_cell[2] == 1) or
+    (str == "2" and curr_mouse_to_cell[2] == 2) or
+    (str == "3" and curr_mouse_to_cell[2] == 3) or
+    (str == "4" and curr_mouse_to_cell[2] == 4) or
+    (str == "5" and curr_mouse_to_cell[2] == 5) or
+    (str == "6" and curr_mouse_to_cell[2] == 6) or
+    (str == "7" and curr_mouse_to_cell[2] == 7)
+      )) then
+    b_print(str, x, y, 0)
+    print(str, x, y, 14)
+  else
+   print(str, x, y, col)
+  end
+end
+
+--prints a background for a string
+function b_print(str, x, y, col)
+  palt(0, false)
+  print(str, x - 1, y - 1, col)
+  print(str, x - 1, y, col)
+  print(str, x - 1, y + 1, col)
+  print(str, x, y - 1, col)
+  print(str, x, y + 1, col)
+  print(str, x + 1, y - 1, col)
+  print(str, x + 1, y, col)
+  print(str, x + 1, y + 1, col)  
 end
 
 
@@ -673,45 +1052,53 @@ inverses = {
 }
 
 __gfx__
-0000000070000000000000000000000006000000fffff99999fffffffffff88888fffffffffffbbbbbfffffffffffdddddffffff000000000000000000000000
-0000000077000000000088800000000006000000fff999999999fffffff888888888fffffffbbbbbbbbbfffffffdddddddddffff000000000000000000000000
-0070070077700000008888888000000006000000ff99999999999fffff88888888888fffffbbbbbbbbbbbfffffdddddddddddfff000000000000000000000000
-0007700077770000088e88888200000006000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf000000000000000000000000
-0007700000700000088888882200000006000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf000000000000000000000000
-0070070000070000088888882200000006000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf000000000000000000000000
-00000000000000000088888220000000e6000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf000000000000000000000000
-00000000000000000000222000000000e6000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf000000000000000000000000
-ffffffffffffffffffffffffffffffff06000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf000000000000000000000000
-ffffff00000ffffffffffffff75fffff06000000449999999999944f228888888888822f33bbbbbbbbbbb33f11ddddddddddd11f000000000000000000000000
-ffff007777700ffffffffffff775ffff06000000ff49999999994fffff28888888882fffff3bbbbbbbbb3fffff1ddddddddd1fff000000000000000000000000
-fff07777777770fffffffffff7775fff06000000fff449999944fffffff228888822fffffff33bbbbb33fffffff11ddddd11ffff000000000000000000000000
-f007777777777700fffffffff77775ff06000000fffff44444fffffffffff22222fffffffffff33333fffffffffff11111ffffff000000000000000000000000
+0000000070000000000000000000000006000000fffff99999fffffffffff88888fffffffffffbbbbbfffffffffffdddddffffff000008800000099000000000
+0000000077000000000088800000000006000000fff999999999fffffff888888888fffffffbbbbbbbbbfffffffdddddddddffff000888800009999000000000
+0070070077700000008888888000000006000000ff99999999999fffff88888888888fffffbbbbbbbbbbbfffffdddddddddddfff008888800099999000000000
+0007700077770000088e88888200000006000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
+0007700000700000088888882200000006000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
+0070070000070000088888882200000006000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
+00000000000000000088888220000000e6000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
+00000000000000000000222000000000e6000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
+ffffffffffffffffffffffffffffffff06000000999999999999999f888888888888888fbbbbbbbbbbbbbbbfdddddddddddddddf888888809999999000000000
+ffffff00000ffffffffffffff75fffff06000000449999999999944f228888888888822f33bbbbbbbbbbb33f11ddddddddddd11f228888804499999000000000
+ffff007777700ffffffffffff775ffff06000000ff49999999994fffff28888888882fffff3bbbbbbbbb3fffff1ddddddddd1fff002888800049999000000000
+fff07777777770fffffffffff7775fff06000000fff449999944fffffff228888822fffffff33bbbbb33fffffff11ddddd11ffff000228800004499000000000
+f007777777777700fffffffff77775ff06000000fffff44444fffffffffff22222fffffffffff33333fffffffffff11111ffffff000002200000044000000000
 07777777777777770ffffffff5575fff06000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000
 07777777777777770ffffffffff575ff06000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000
 07777777777777770fffffffffff5fff06000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000000000000000000000000
-07777777777777770ffffffff0000000060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-07777777777777770fffffffffffffffe60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-07777777777777770fffffffffffffffe60000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-07777777777777770fffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-f007777777777700ffffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-fff07777777770ffffffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffff007777700fffffffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffff00000fffffffffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff666666660000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff06a00a000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff060aa0aa0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff060000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-ffffffffffffffffffffffffffffffff000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+07777777777777770ffffffff000000006000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000bb000000dd000000000
+07777777777777770fffffffffffffffe6000000ffffff00000fffffffffffffffffff00000ffffffffffffff75fffff00000000000bbbb0000dddd000000000
+07777777777777770fffffffffffffffe6000000ffff002204400fffffffffffffff003301100ffffffffffff775ffff0000000000bbbbb000ddddd000000000
+07777777777777770fffffffffffffff06000000fff02222044440fffffffffffff03333011110fffffffffff7775fff00000000bbbbbbb0ddddddd000000000
+f007777777777700ffffffffffffffff06000000f002222204444400fffffffff003333301111100fffffffff77775ff00000000bbbbbbb0ddddddd000000000
+fff07777777770ffffffffffffffffff0600000002222222044444440fffffff03333333011111110ffffffff5575fff00000000bbbbbbb0ddddddd000000000
+ffff007777700fffffffffffffffffff0600000002222222044444440fffffff03333333011111110ffffffffff575ff00000000bbbbbbb0ddddddd000000000
+ffffff00000fffffffffffffffffffff0600000002222222044444440fffffff03333333011111110fffffffffff5fff00000000bbbbbbb0ddddddd000000000
+ffffffffffffffffffffffff000fffff0600000002222222044444440fffffff03333333011111110ffffffff000000000000000bbbbbbb0ddddddd000000000
+ffffffffffffffffffffffff0700ffff6666666602222222044444440fffffff03333333011111110fffffffffffffff0000000033bbbbb011ddddd000000000
+ffffffffffffffffffffffff07700fff0600000002222222044444440fffffff03333333011111110fffffffffffffff00000000003bbbb0001dddd000000000
+ffffffffffffffffffffffff077700ff0600000002222222044444440fffffff03333333011111110fffffffffffffff0000000000033bb000011dd000000000
+ffffffffffffffffffffffff077770ff06a00a00f002222204444400fffffffff003333301111100ffffffffffffffff00000000000003300000011000000000
+ffffffffffffffffffffffff000700ff060aa0aafff02222044440fffffffffffff03333011110ffffffffffffffffff00000000000000000000000000000000
+ffffffffffffffffffffffffff0070ff06000000ffff002204400fffffffffffffff003301100fffffffffffffffffff00000000000000000000000000000000
+fffffffffffffffffffffffffff000ff06000000ffffff00000fffffffffffffffffff00000fffffffffffffffffffff00000000000000000000000000000000
+ff00000000000000000000000fffffffff00000000000000000000000fffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
+f0777777777777777777777770fffffff0777777777777777777777770ffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
+077777777782888277777777770fffff0777777777777777b3777777770fffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
+077777777788277827777777770fffff077777777777777bb3777777770fffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
+077777777788827782777777770fffff0777777777b377bbb3777777770fffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
+077777777777777782777777770fffff0777777777bb3bbb37777777770fffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
+077777777782777782777777770fffff0777777777bbbbb377777777770fffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
+077777777778277827777777770fffff07777777777bbb3777777777770fffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
+077777777777888277777777770f0000077777777777b37777777777770f0000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+f0777777777777777777777770ff0000f0777777777777777777777770ff0000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+ff00000000000000000000000fff0000ff00000000000000000000000fff0000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+ffffffffffffffffffffffffffff0000ffffffffffffffffffffffffffff0000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
+0000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
 __sfx__
 000100000962005010006000060000600006000060000600226000060025600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
