@@ -536,8 +536,16 @@ function cells_update()
   --lerp all cells towards their default location
   i = 1
   for value in all(cells) do
-   value.y = lerp(value.y, cell_coords[i][2] - .9, 0.06)
-   i+=1
+    local index = index_to_board_coords(i)
+    if ((gamestate == "turn1" or gamestate == "player1") and (board[index[1]][index[2]] == 1 or board[index[1]][index[2]] == 2)) then
+      value.y = lerp(value.y, cell_coords[i][2] - 3, 0.06)
+    elseif (gamestate == "player2" and (board[index[1]][index[2]] == 3 or board[index[1]][index[2]] == 4)) then
+      value.y = lerp(value.y, cell_coords[i][2] - 3, 0.06)
+    else
+      value.y = lerp(value.y, cell_coords[i][2] - .9, 0.06)
+    end
+
+    i+=1
   end
   
   --lerp the cell under the mouse upward
@@ -546,7 +554,7 @@ function cells_update()
   --if there is a tile there, don't lerp upward
   local index = index_to_board_coords(closestcell)
   if (board[index[1]][index[2]] != 0) return
-  cells[closestcell].y = lerp(cells[closestcell].y, cell_coords[closestcell][2] - 6, 0.04)
+  cells[closestcell].y = lerp(cells[closestcell].y, cell_coords[closestcell][2] - 7, 0.015)
 
   --push the cell downward when you click
   if (is_pressed(6)) then
