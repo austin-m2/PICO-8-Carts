@@ -175,6 +175,7 @@ function _init()
   columns_init()
   buttons_init()
 
+  make_starfield_ps()
   gamestate = "turn1"
 end
 
@@ -199,6 +200,8 @@ function _update60()
   printh(stat(1) - cpu..": game_update()")
   cpu = stat(1)
 
+  update_psystems()
+
   columns_update()
   printh(stat(1) - cpu..": columns_update()")
   cpu = stat(1)
@@ -206,13 +209,6 @@ function _update60()
   buttons_update()
   printh(stat(1) - cpu..": buttons_update()")
   cpu = stat(1)
-
-
-
-
-
-	
-	
 end
 
 function _draw()
@@ -220,8 +216,9 @@ function _draw()
   --draw background
 	rectfill(0,0,127,127,12)
 
-  cpu = stat(1)
+  draw_ps(particle_systems[1]) --draw starfield background
 
+  cpu = stat(1)
 
   columns_draw()
   printh(stat(1) - cpu..": columns_draw()")
@@ -232,18 +229,15 @@ function _draw()
   printh(stat(1) - cpu..": cells_draw()")
   cpu = stat(1)
 
+  for ps in all(particle_systems) do
+    if (ps != particle_systems[1]) draw_ps(ps)
+  end
+
 
   buttons_draw()
   printh(stat(1) - cpu..": buttons_draw()")
   cpu = stat(1)
 
-  --print coordinates of cell under mouse
---[[
-  if (curr_mouse_to_cell != nil) then 
-    print(curr_mouse_to_cell[1], 0, 8, 7)
-    print(curr_mouse_to_cell[2], 8, 8, 7)
-  end
-]]
   text_draw()
   printh(stat(1) - cpu..": text_draw()")
   cpu = stat(1)
@@ -264,6 +258,9 @@ function _draw()
       bold_print("player 2 wins~!", 36, 8, 7)
     end
   end
+
+
+  print(stat(1), 8, 8, 7)
 end
 
 function mouse_init() 
@@ -409,11 +406,13 @@ function game_update()
         colorchoice = 2
         left_column_pos[2] += 3
         mouse.pos = 7
+        sfx(2)
       end 
       if (p1choice2 == nil and p1choice1 == nil and mouse.x > left_column_pos[1] + 8) then 
         colorchoice = 1
         left_column_pos[2] += 3
         mouse.pos = 7
+        sfx(2)
       end
 
     --check whether a piece should be put down
@@ -425,10 +424,12 @@ function game_update()
             p1choice1 = curr_mouse_to_cell
             colorchoice = 0
             mouse.pos = 6
+            sfx(1)
           elseif (colorchoice == 2) then
             p1choice2 = curr_mouse_to_cell
             colorchoice = 0
             mouse.pos = 6
+            sfx(1)
           end
         end
       end
@@ -513,11 +514,13 @@ function game_update()
         colorchoice = 2
         left_column_pos[2] += 3
         mouse.pos = 7
+        sfx(2)
       end
       if (p1choice1 == nil and mouse.x > left_column_pos[1] + 8) then
         colorchoice = 1
         left_column_pos[2] += 3
         mouse.pos = 7
+        sfx(2)
       end
 
     --check whether a piece should be put down
@@ -528,11 +531,13 @@ function game_update()
           if (colorchoice == 1) then 
             p1choice1 = curr_mouse_to_cell
             colorchoice = 0
+            sfx(1)
             if (p1choice2 == nil) then mouse.pos = 1
             else mouse.pos = 6 end
           elseif (colorchoice == 2) then
             p1choice2 = curr_mouse_to_cell
             colorchoice = 0
+            sfx(1)
             if (p1choice1 == nil) then mouse.pos = 2
             else mouse.pos = 6 end
           end
@@ -616,11 +621,13 @@ function game_update()
         colorchoice = 3
         right_column_pos[2] += 3
         mouse.pos = 10
+        sfx(2)
       end
       if (p2choice4 == nil and mouse.x > right_column_pos[1] + 8) then 
         colorchoice = 4
         right_column_pos[2] += 3
         mouse.pos = 10
+        sfx(2)
       end
 
     --check whether a piece should be put down
@@ -631,11 +638,13 @@ function game_update()
           if (colorchoice == 3) then 
             p2choice3 = curr_mouse_to_cell
             colorchoice = 0
+            sfx(1)
             if (p2choice4 == nil) then mouse.pos = 4
             else mouse.pos = 6 end
           elseif (colorchoice == 4) then
             p2choice4 = curr_mouse_to_cell
             colorchoice = 0
+            sfx(1)
             if (p2choice3 == nil) then mouse.pos = 3
             else mouse.pos = 6 end
           end
@@ -719,7 +728,9 @@ function game_update()
 
     --kill blooms that were marked for deletion
     for bloom in all(deadblooms) do
+      sfx(3)
       for piece in all(bloom) do
+        make_sparks_ps(cells[board_coords_to_index(piece[1], piece[2])].x + 9, cells[board_coords_to_index(piece[1], piece[2])].y + 10, board[piece[1]][piece[2]])
         board[piece[1]][piece[2]] = 0
         cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 20
         p1score += 1
@@ -778,7 +789,9 @@ function game_update()
 
     --kill blooms that were marked for deletion
     for bloom in all(deadblooms) do
+      sfx(3)
       for piece in all(bloom) do
+        make_sparks_ps(cells[board_coords_to_index(piece[1], piece[2])].x + 9, cells[board_coords_to_index(piece[1], piece[2])].y + 10, board[piece[1]][piece[2]])
         board[piece[1]][piece[2]] = 0
         cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 20
         p2score += 1
@@ -861,11 +874,11 @@ function cells_draw()
       line(v.x + 8, v.y + 15, v.x + 8, 127, 0)
       line(v.x + 16, v.y + 12, v.x + 16, 127, 0)
     else
-      rectfill(v.x + 1, v.y + 13, v.x + 7, v.y + 16, 6)
-      rectfill(v.x + 9, v.y + 13, v.x + 15, v.y + 16, 5)
-      line(v.x, v.y + 12, v.x, v.y + 15, 0)
-      line(v.x + 8, v.y + 15, v.x + 8, v.y + 18, 0)
-      line(v.x + 16, v.y + 12, v.x + 16, v.y + 15, 0)
+      rectfill(v.x + 1, v.y + 13, v.x + 7, v.y + 19, 6)
+      rectfill(v.x + 9, v.y + 13, v.x + 15, v.y + 19, 5)
+      line(v.x, v.y + 12, v.x, v.y + 17, 0)
+      line(v.x + 8, v.y + 15, v.x + 8, v.y + 20, 0)
+      line(v.x + 16, v.y + 12, v.x + 16, v.y + 17, 0)
     end
 
     if (board_index == curr_mouse_to_cell_coords) then pal(7, 15, 0) end
@@ -1330,6 +1343,295 @@ function lerp(a,b,t)
   return (b - a) * (-2^(-10 * t) + 1 ) + a
 end
 
+-- particle system library -----------------------------------
+-- todo: lots of this stuff could be stripped out!!
+particle_systems = {}
+
+function make_psystem(minlife, maxlife, minstartsize, maxstartsize, minendsize, maxendsize)
+  local ps = {}
+  -- global particle system params
+  ps.autoremove = true
+
+  ps.minlife = minlife
+  ps.maxlife = maxlife
+  
+  ps.minstartsize = minstartsize
+  ps.maxstartsize = maxstartsize
+  ps.minendsize = minendsize
+  ps.maxendsize = maxendsize
+  
+  -- container for the particles
+  ps.particles = {}
+
+  -- emittimers dictate when a particle should start
+  -- they called every frame, and call emit_particle when they see fit
+  -- they should return false if no longer need to be updated
+  ps.emittimers = {}
+
+  -- emitters must initialize p.x, p.y, p.vx, p.vy
+  ps.emitters = {}
+
+  -- every ps needs a drawfunc
+  ps.drawfuncs = {}
+
+  -- affectors affect the movement of the particles
+  ps.affectors = {}
+
+  add(particle_systems, ps)
+
+  return ps
+end
+
+function update_psystems()
+  local timenow = time()
+  for ps in all(particle_systems) do
+    update_ps(ps, timenow)
+  end
+end
+
+function update_ps(ps, timenow)
+  for et in all(ps.emittimers) do
+    local keep = et.timerfunc(ps, et.params)
+    if (keep==false) then
+      del(ps.emittimers, et)
+    end
+  end
+
+  for p in all(ps.particles) do
+    p.phase = (timenow-p.starttime)/(p.deathtime-p.starttime)
+
+    for a in all(ps.affectors) do
+      a.affectfunc(p, a.params)
+    end
+
+    p.x += p.vx
+    p.y += p.vy
+    
+    local dead = false
+    if (p.x<0 or p.x>127 or p.y<0 or p.y>127) then
+      dead = true
+    end
+
+    if (timenow>=p.deathtime) then
+      dead = true
+    end
+
+    if (dead==true) then
+      del(ps.particles, p)
+    end
+  end
+  
+  if (ps.autoremove==true and count(ps.particles)<=0) then
+    del(particle_systems, ps)
+  end
+end
+
+function draw_ps(ps, params)
+  for df in all(ps.drawfuncs) do
+    df.drawfunc(ps, df.params)
+  end
+end
+
+function deleteallps()
+  for ps in all(particle_systems) do
+    del(particle_systems, ps)
+  end
+end
+
+function emittimer_burst(ps, params)
+  for i=1,params.num do
+    emit_particle(ps)
+  end
+  return false
+end
+
+function emittimer_constant(ps, params)
+  if (params.nextemittime<=time()) then
+    emit_particle(ps)
+    params.nextemittime += params.speed
+  end
+  return true
+end
+
+function emit_particle(psystem)
+  local p = {}
+
+  local e = psystem.emitters[flr(rnd(#(psystem.emitters)))+1]
+  e.emitfunc(p, e.params) 
+
+  p.phase = 0
+  p.starttime = time()
+  p.deathtime = time()+rnd(psystem.maxlife-psystem.minlife)+psystem.minlife
+
+  p.startsize = rnd(psystem.maxstartsize-psystem.minstartsize)+psystem.minstartsize
+  p.endsize = rnd(psystem.maxendsize-psystem.minendsize)+psystem.minendsize
+
+  add(psystem.particles, p)
+end
+
+function emitter_point(p, params)
+  p.x = params.x
+  p.y = params.y
+
+  p.vx = rnd(params.maxstartvx-params.minstartvx)+params.minstartvx
+  p.vy = rnd(params.maxstartvy-params.minstartvy)+params.minstartvy
+end
+
+function emitter_box(p, params)
+  p.x = rnd(params.maxx-params.minx)+params.minx
+  p.y = rnd(params.maxy-params.miny)+params.miny
+
+  p.vx = rnd(params.maxstartvx-params.minstartvx)+params.minstartvx
+  p.vy = rnd(params.maxstartvy-params.minstartvy)+params.minstartvy
+end
+
+function affect_force(p, params)
+  p.vx += params.fx
+  p.vy += params.fy
+end
+
+function affect_forcezone(p, params)
+  if (p.x>=params.zoneminx and p.x<=params.zonemaxx and p.y>=params.zoneminy and p.y<=params.zonemaxy) then
+    p.vx += params.fx
+    p.vy += params.fy
+  end
+end
+
+function affect_stopzone(p, params)
+  if (p.x>=params.zoneminx and p.x<=params.zonemaxx and p.y>=params.zoneminy and p.y<=params.zonemaxy) then
+    p.vx = 0
+    p.vy = 0
+  end
+end
+
+function affect_bouncezone(p, params)
+  if (p.x>=params.zoneminx and p.x<=params.zonemaxx and p.y>=params.zoneminy and p.y<=params.zonemaxy) then
+    p.vx = -p.vx*params.damping
+    p.vy = -p.vy*params.damping
+  end
+end
+
+function affect_attract(p, params)
+  if (abs(p.x-params.x)+abs(p.y-params.y)<params.mradius) then
+    p.vx += (p.x-params.x)*params.strength
+    p.vy += (p.y-params.y)*params.strength
+  end
+end
+
+function affect_orbit(p, params)
+  params.phase += params.speed
+  p.x += sin(params.phase)*params.xstrength
+  p.y += cos(params.phase)*params.ystrength
+end
+
+function draw_ps_fillcirc(ps, params)
+  for p in all(ps.particles) do
+    c = flr(p.phase*count(params.colors))+1
+    r = (1-p.phase)*p.startsize+p.phase*p.endsize
+    circfill(p.x,p.y,r,params.colors[c])
+  end
+end
+
+function draw_ps_pixel(ps, params)
+  for p in all(ps.particles) do
+    c = flr(p.phase*count(params.colors))+1
+    pset(p.x,p.y,params.colors[c])
+  end 
+end
+
+function draw_ps_streak(ps, params)
+  for p in all(ps.particles) do
+    c = flr(p.phase*count(params.colors))+1
+    line(p.x,p.y,p.x-p.vx,p.y-p.vy,params.colors[c])
+  end 
+end
+
+function draw_ps_animspr(ps, params)
+  params.currframe += params.speed
+  if (params.currframe>count(params.frames)) then
+    params.currframe = 1
+  end
+  for p in all(ps.particles) do
+    pal(7,params.colors[flr(p.endsize)])
+    spr(params.frames[flr(params.currframe+p.startsize)%count(params.frames)],p.x,p.y)
+  end
+  pal()
+end
+
+function draw_ps_agespr(ps, params)
+  for p in all(ps.particles) do
+    local f = flr(p.phase*count(params.frames))+1
+    spr(params.frames[f],p.x,p.y)
+  end 
+end
+
+function draw_ps_rndspr(ps, params)
+  for p in all(ps.particles) do
+    pal(7,params.colors[flr(p.endsize)])
+    spr(params.frames[flr(p.startsize)],p.x,p.y)
+  end 
+  pal()
+end
+
+function make_sparks_ps(ex,ey, col)
+  local ps = make_psystem(0.3,0.7, 1,2,0.5,0.5)
+  
+  add(ps.emittimers,
+    {
+      timerfunc = emittimer_burst,
+      params = { num = 10}
+    }
+  )
+  add(ps.emitters, 
+    {
+      emitfunc = emitter_point,
+      params = { x = ex, y = ey, minstartvx = -1.5, maxstartvx = 1.5, minstartvy = -3, maxstartvy=-2 }
+    }
+  )
+  if (col == 1) arr = {7,15,10,9,9,4}
+  if (col == 2) arr = {7,15,14,8,8,2}
+  if (col == 3) arr = {7,11,11,3,3,1}
+  if (col == 4) arr = {7,12,13,13,1,5}
+  add(ps.drawfuncs,
+    {
+
+      drawfunc = draw_ps_fillcirc,
+      params = { colors = arr }
+      --params = { colors = {7,10,15,9,4,5} }
+    }
+  )
+  add(ps.affectors,
+    { 
+      affectfunc = affect_force,
+      params = { fx = 0, fy = 0.3 }
+    }
+  )
+end
+
+function make_starfield_ps()
+   local ps = make_psystem(10,20, 1,2,0.5,0.5)
+   ps.autoremove = false
+   add(ps.emittimers,
+       {
+           timerfunc = emittimer_constant,
+           params = {nextemittime = time(), speed = 0.20}
+       }
+   )
+   add(ps.emitters, 
+       {
+           emitfunc = emitter_box,
+           params = { minx = 0, maxx = 127, miny = 127, maxy= 127, minstartvx = -0.2, maxstartvx = 0.2, minstartvy = -0.5, maxstartvy=-0.1 }
+       }
+   )
+   add(ps.drawfuncs,
+       {
+           drawfunc = draw_ps_pixel,
+           params = { colors = {10,7,10,7,10,10,7,10,7,10,10,7,10,10} }
+           --params = { colors = {7,6,7,6,7,6,6,7,6,7,7,6,6,7} }
+       }
+   )
+end
+
 inverses_dark = {
 	6,
 	9,
@@ -1418,4 +1720,7 @@ ffffffffffffffffffffffffffff0000ffffffffffffffffffffffffffff0000ffffffffffffffff
 0000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000
 __sfx__
-000100000962005010006000060000600006000060000600226000060025600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
+010100000962005010006000060000600006000060000600226000060025600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600006000060000600
+000100001a60416611116110b7210f731127411775011700177001170014700177001b700187001c7002370026700006000060000600006000060000600006000060000600006000060000600006000060000600
+000100001a60016610116100f72013730167401b75011700177001170014700177001b700187001c7002370026700006000060000600006000060000600006000060000600006000060000600006000060000600
+00020000096500e2300d2300c2200a220090200902509020070100601004010040100301003010020100101001010003000030000300003000030000300003000030000300003000030000300003000030000300
