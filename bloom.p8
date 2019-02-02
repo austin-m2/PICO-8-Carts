@@ -28,7 +28,7 @@ __lua__
 	cells = {}
 	gems = {}
 
-  controlstate = "mouse"
+  controlstate = "keyboard"
   is_online_mode_enabled = true
 
   gamestate = "player1"
@@ -41,6 +41,7 @@ __lua__
   p2score = 0
   maxscore = 15
 
+  offset = 0
   cpu = 0
 
 
@@ -121,6 +122,52 @@ __lua__
 
   mouse_pixels = {}
 
+  mouse_anchor_points = {
+    {13, 29, nil, 5, nil, 2}, --red
+    {23, 29, nil, 5, 1, nil}, --orange
+    {103, 29, nil, 6, nil, 4}, --green
+    {113, 29, nil, 6, 3, nil}, --purple
+    {55, 114, nil, nil, 6, 6}, --undo  (todo: figure this out; these depend on whose turn it is)
+    {87, 114, nil, nil, 5, 5}, --go
+    {41, 28, 40, 11, 10, 8},  --1st row
+    {57, 28, 41, 12, 7, 9},
+    {73, 28, 42, 13, 8, 10},
+    {89, 28, 43, 14, 9, 7},
+    {33, 39, 7, 16, 15, 12},  --second row                 --up-right, down-left
+    {49, 39, 8, 17, 11, 13},
+    {65, 39, 9, 18, 12, 14},
+    {81, 39, 10, 19, 13, 15},
+    {97, 39, 10, 20, 14, 11},
+    {25, 50, 11, 22, 21, 17},  --third row 
+    {41, 50, 12, 23, 16, 18},
+    {57, 50, 13, 24, 17, 19},
+    {73, 50, 14, 25, 18, 20},
+    {89, 50, 15, 26, 19, 21},
+    {105, 50, 15, 27, 20, 16},
+    {17, 61, 16, 29, 28, 23},  --fourth row
+    {33, 61, 17, 29, 22, 24},
+    {49, 61, 18, 30, 23, 25},
+    {65, 61, 19, 31, 24, 26},
+    {81, 61, 20, 32, 25, 27},
+    {97, 61, 21, 33, 26, 28},
+    {113, 61, 21, 34, 27, 22},
+    {25, 72, 23, 35, 34, 30},  --fifth row
+    {41, 72, 24, 35, 29, 31},
+    {57, 72, 25, 36, 30, 32},
+    {73, 72, 26, 37, 31, 33},
+    {89, 72, 27, 38, 32, 34},
+    {105, 72, 28, 39, 33, 29},
+    {33, 83, 30, 40, 39, 36},  --sixth row
+    {49, 83, 31, 40, 35, 37},
+    {65, 83, 32, 41, 36, 38},
+    {81, 83, 33, 42, 37, 39},
+    {97, 83, 34, 43, 38, 35},
+    {41, 97, 36, 7, 43, 41},  --seventh row
+    {57, 94, 37, 8, 40, 42},
+    {73, 94, 38, 9, 41, 43},
+    {89, 94, 39, 10, 42, 40}
+  }
+
 function _init()
 	init_keys()
 	mouse_init()
@@ -162,11 +209,14 @@ function _update60()
 
 
 
+
+
 	
 	
 end
 
 function _draw()
+  screen_shake()
   --draw background
 	rectfill(0,0,127,127,12)
 
@@ -214,12 +264,12 @@ function _draw()
       bold_print("player 2 wins~!", 36, 8, 7)
     end
   end
-  
 end
 
 function mouse_init() 
 	--enable mouse support
 	poke(0x5f2d, 1)
+  mouse.pos = 1
 
 	for sx = 8, 11 do
 		for sy = 0, 5 do
@@ -228,56 +278,142 @@ function mouse_init()
 			end
 		end
 	end
+
 end
 
 function mouse_update()
-  if (is_pressed(0) or is_pressed(1) or is_pressed(2) or (is_pressed(3))) controlstate = "keyboard"
-  if (is_pressed(6)) controlstate = "mouse"
+  mouse_anchor_points_update()
+
+  if (controlstate == "mouse") then
+    --check if player wants to switch to keyboard control
+    if (is_pressed(0) or is_pressed(1) or is_pressed(2) or (is_pressed(3))) then 
+      controlstate = "keyboard"
+    
+      --move the mouse to a valid position
+      if (gamestate == "turn1" or gamestate == "player1") mouse.pos = 2
+      if (gamestate == "player2") mouse.pos = 3
+    end
+  else
+    --check if player wants to switch to mouse control
+    if (is_pressed(6)) controlstate = "mouse"
+  end
+
 
   if (controlstate == "mouse") then
     mouse.x = stat(32)
     mouse.y = stat(33)
-  else
-    if (is_held(0)) mouse.x -= 1
-    if (is_held(1)) mouse.x += 1
-    if (is_held(2)) mouse.y -= 1
-    if (is_held(3)) mouse.y += 1
+  else --controlstate == "keyboard"
+    --move the mouse!
+    move_mouse()
+    mouse.x = mouse_anchor_points[mouse.pos][1]
+    mouse.y = mouse_anchor_points[mouse.pos][2]
+
+    if (mouse.pos == 1 or mouse.pos == 2) mouse.y -= p1score
+    if (mouse.pos == 3 or mouse.pos == 4) mouse.y -= p2score
+
   end
 
   cpu = stat(1)
   curr_mouse_to_cell = mouse_to_cell()
-  --curr_mouse_to_cell_coords = mouse_to_cell_coords()
 
   printh(stat(1) - cpu..": mouse_to_cell() and mouse_to_cell_coords()")
 end
 
 function mouse_draw()
---[[
-	for v in all(mouse_pixels) do
-		local x = mouse.x + v[1]
-		local y = mouse.y + v[2]
-		pset(x, y, inverses_dark[pget(x, y) + 1])
-	end
-]]
 palt(0, false)
 palt(15, true)
-spr(51, mouse.x, mouse.y)
+if (controlstate == "keyboard") spr(51, mouse.x, mouse.y)
 end	
+
+--move the mouse to the desired anchor point (in keyboard mode)
+function move_mouse()
+  if (btnp(2) and mouse_anchor_points[mouse.pos][3] != nil) mouse.pos = mouse_anchor_points[mouse.pos][3] --up
+  if (btnp(3) and mouse_anchor_points[mouse.pos][4] != nil) mouse.pos = mouse_anchor_points[mouse.pos][4] --down
+  if (btnp(0) and mouse_anchor_points[mouse.pos][5] != nil) mouse.pos = mouse_anchor_points[mouse.pos][5] --left
+  if (btnp(1) and mouse_anchor_points[mouse.pos][6] != nil) mouse.pos = mouse_anchor_points[mouse.pos][6] --right
+end
+
+function mouse_anchor_points_update()
+  if (gamestate == "turn1") then
+    --update where the cursor should go from the bottom buttons
+    mouse_anchor_points[5][3] = 2
+    mouse_anchor_points[6][3] = 2
+
+    --update whether the cursor should be able to go to the bottom buttons
+    if (p1choice1 == nil and p1choice2 == nil) then
+      mouse_anchor_points[1][4] = nil
+      mouse_anchor_points[2][4] = nil
+    else
+      mouse_anchor_points[1][4] = 5
+      mouse_anchor_points[2][4] = 5
+    end
+  end
+
+  if (gamestate == "player1") then
+    --update where the cursor should go from the bottom buttons
+    mouse_anchor_points[5][3] = 2
+    mouse_anchor_points[6][3] = 2
+
+    --update whether the cursor should be able to go to the bottom buttons
+    if (p1choice1 == nil and p1choice2 == nil) then
+      mouse_anchor_points[1][4] = nil
+      mouse_anchor_points[2][4] = nil
+    else
+      mouse_anchor_points[1][4] = 5
+      mouse_anchor_points[2][4] = 5
+    end
+  end
+
+  if (gamestate == "player2") then
+    --update where the cursor should go from the bottom buttons
+    mouse_anchor_points[5][3] = 3
+    mouse_anchor_points[6][3] = 3
+  end
+
+      --update whether the cursor should be able to go to the bottom buttons
+    if (p2choice3 == nil and p2choice4 == nil) then
+      mouse_anchor_points[3][4] = nil
+      mouse_anchor_points[4][4] = nil
+    else
+      mouse_anchor_points[3][4] = 5
+      mouse_anchor_points[4][4] = 5
+    end
+end
 
 function game_update()
 
   if (gamestate == "turn1") then
+    --check if player is trying to paste a move
+    if (is_pressed(5)) then
+      move = ''..stat(4)
+      if (#move == 3) then
+        --get the numbers from the pasted string
+        a = tonum(sub(move, 1, 1))
+        b = tonum(sub(move, 2, 2))
+        c = tonum(sub(move, 3, 3))
+
+        --put the piece down if it is valid
+        if (a == 1 and board[b][c] == 0) then
+          board[b][c] = 1
+          p1choice1 = {b, c}
+        elseif (a == 2 and board[b][c] == 0) then
+          board[b][c] = 2
+          p1choice2 = {b, c}
+        end
+      end
+    end
+
     --check if player is choosing a color
-    --if (is_pressed(4)) colorchoice = 1
-    --if (is_pressed(5)) colorchoice = 2
     if ((is_pressed(6) or is_pressed(4)) and dist(mouse.x, mouse.y, left_column_pos[1] + 8, left_column_pos[2] + 8) < 7.5) then
-      if (p1choice1 == nil and mouse.x < left_column_pos[1] + 8) then 
+      if (p1choice1 == nil and p1choice2 == nil and mouse.x < left_column_pos[1] + 8) then 
         colorchoice = 2
         left_column_pos[2] += 3
+        mouse.pos = 7
       end 
-      if (p1choice2 == nil and mouse.x > left_column_pos[1] + 8) then 
+      if (p1choice2 == nil and p1choice1 == nil and mouse.x > left_column_pos[1] + 8) then 
         colorchoice = 1
         left_column_pos[2] += 3
+        mouse.pos = 7
       end
 
     --check whether a piece should be put down
@@ -287,8 +423,12 @@ function game_update()
           board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
           if (colorchoice == 1) then 
             p1choice1 = curr_mouse_to_cell
+            colorchoice = 0
+            mouse.pos = 6
           elseif (colorchoice == 2) then
             p1choice2 = curr_mouse_to_cell
+            colorchoice = 0
+            mouse.pos = 6
           end
         end
       end
@@ -305,40 +445,79 @@ function game_update()
         board[p1choice2[1]][p1choice2[2]] = 0
         p1choice2 = nil
       end  
+      mouse.pos = 2
       colorchoice = 0    
     end
 
     --check whether the player wants to end their turn
     if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
+        --copy the move to the clipboard if online mode is enabled!
+        if (is_online_mode_enabled) then
+          move = ''
+          if (p1choice1 != nil) move = move..'1'..p1choice1[1]..p1choice1[2]
+          if (p1choice2 != nil) move = move..'2'..p1choice2[1]..p1choice2[2]
+          printh(''..move,'@clip') 
+        end
+
         gamestate = "p1top2"
         p1choice1 = nil
         p1choice2 = nil
         colorchoice = 0
+        mouse.pos = 3
     end
   end
 
---[[
-    if (btnp(5,1) and (p1choice1 != nil or p1choice2 != nil)) then
-        gamestate = "p1top2"
-        p1choice1 = nil
-        p1choice2 = nil
-        colorchoice = 0
-    end
-  end
-]]
 
   if (gamestate == "player1") then
+    --check if player is trying to paste a move
+    if (is_pressed(5)) then
+      move = ''..stat(4)
+      if (#move == 3) then
+        --get the numbers from the pasted string
+        a = tonum(sub(move, 1, 1))
+        b = tonum(sub(move, 2, 2))
+        c = tonum(sub(move, 3, 3))
+
+        --put the piece down if it is valid
+        if (a == 1 and board[b][c] == 0) then
+          board[b][c] = 1
+          p1choice1 = {b, c}
+        elseif (a == 2 and board[b][c] == 0) then
+          board[b][c] = 2
+          p1choice2 = {b, c}
+        end
+      elseif(#move == 6) then
+        --get the numbers from the pasted string
+        b = tonum(sub(move, 2, 2))
+        c = tonum(sub(move, 3, 3))
+        e = tonum(sub(move, 5, 5))
+        f = tonum(sub(move, 6, 6))
+
+        --put the pieces down if they are valid
+        if (board[b][c] == 0) then
+          board[b][c] = 1
+          p1choice1 = {b, c}
+        end
+        if (board[e][f] == 0) then
+          board[e][f] = 2
+          p1choice2 = {e, f}
+        end
+      else
+      end
+    end
+
+
     --check if player is choosing a color
-    --if (is_pressed(4)) colorchoice = 1
-    --if (is_pressed(5)) colorchoice = 2
     if ((is_pressed(6) or is_pressed(4)) and dist(mouse.x, mouse.y, left_column_pos[1] + 8, left_column_pos[2] + 8) < 7.5) then
       if (p1choice2 == nil and mouse.x < left_column_pos[1] + 8) then
         colorchoice = 2
         left_column_pos[2] += 3
+        mouse.pos = 7
       end
       if (p1choice1 == nil and mouse.x > left_column_pos[1] + 8) then
         colorchoice = 1
         left_column_pos[2] += 3
+        mouse.pos = 7
       end
 
     --check whether a piece should be put down
@@ -348,8 +527,14 @@ function game_update()
           board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
           if (colorchoice == 1) then 
             p1choice1 = curr_mouse_to_cell
+            colorchoice = 0
+            if (p1choice2 == nil) then mouse.pos = 1
+            else mouse.pos = 6 end
           elseif (colorchoice == 2) then
             p1choice2 = curr_mouse_to_cell
+            colorchoice = 0
+            if (p1choice1 == nil) then mouse.pos = 2
+            else mouse.pos = 6 end
           end
         end
       end
@@ -366,31 +551,76 @@ function game_update()
         board[p1choice2[1]][p1choice2[2]] = 0
         p1choice2 = nil
       end     
+      mouse.pos = 2
       colorchoice = 0 
     end
 
     --check whether the player wants to end their turn
     if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
-    --if (btnp(5,1) and (p1choice1 != nil or p1choice2 != nil)) then
-        gamestate = "p1top2"
-        p1choice1 = nil
-        p1choice2 = nil
-        colorchoice = 0
+      --copy the move to the clipboard if online mode is enabled!
+      if (is_online_mode_enabled) then
+        move = ''
+        if (p1choice1 != nil) move = move..'1'..p1choice1[1]..p1choice1[2]
+        if (p1choice2 != nil) move = move..'2'..p1choice2[1]..p1choice2[2]
+        printh(''..move,'@clip') 
+      end
+      gamestate = "p1top2"
+      p1choice1 = nil
+      p1choice2 = nil
+      colorchoice = 0
+      mouse.pos = 3
     end
   end
 
   if (gamestate == "player2") then
+    --check if player is trying to paste a move
+    if (is_pressed(5)) then
+      move = ''..stat(4)
+      if (#move == 3) then
+        --get the numbers from the pasted string
+        a = tonum(sub(move, 1, 1))
+        b = tonum(sub(move, 2, 2))
+        c = tonum(sub(move, 3, 3))
+
+        --put the piece down if it is valid
+        if (a == 3 and board[b][c] == 0) then
+          board[b][c] = 3
+          p1choice1 = {b, c}
+        elseif (a == 4 and board[b][c] == 0) then
+          board[b][c] = 4
+          p1choice2 = {b, c}
+        end
+      elseif(#move == 6) then
+        --get the numbers from the pasted string
+        b = tonum(sub(move, 2, 2))
+        c = tonum(sub(move, 3, 3))
+        e = tonum(sub(move, 5, 5))
+        f = tonum(sub(move, 6, 6))
+
+        --put the pieces down if they are valid
+        if (board[b][c] == 0) then
+          board[b][c] = 3
+          p2choice3 = {b, c}
+        end
+        if (board[e][f] == 0) then
+          board[e][f] = 4
+          p2choice4 = {e, f}
+        end
+      else
+      end
+    end
+
     --check if player is choosing a color
-    --if (is_pressed(4)) colorchoice = 3
-    --if (is_pressed(5)) colorchoice = 4
     if ((is_pressed(6) or is_pressed(4)) and dist(mouse.x, mouse.y, right_column_pos[1] + 8, right_column_pos[2] + 8) < 7.5) then
       if (p2choice3 == nil and mouse.x < right_column_pos[1] + 8) then
         colorchoice = 3
         right_column_pos[2] += 3
+        mouse.pos = 10
       end
-      if (p1choice4 == nil and mouse.x > right_column_pos[1] + 8) then 
+      if (p2choice4 == nil and mouse.x > right_column_pos[1] + 8) then 
         colorchoice = 4
         right_column_pos[2] += 3
+        mouse.pos = 10
       end
 
     --check whether a piece should be put down
@@ -400,8 +630,14 @@ function game_update()
           board[curr_mouse_to_cell[1]][curr_mouse_to_cell[2]] = colorchoice
           if (colorchoice == 3) then 
             p2choice3 = curr_mouse_to_cell
+            colorchoice = 0
+            if (p2choice4 == nil) then mouse.pos = 4
+            else mouse.pos = 6 end
           elseif (colorchoice == 4) then
             p2choice4 = curr_mouse_to_cell
+            colorchoice = 0
+            if (p2choice3 == nil) then mouse.pos = 3
+            else mouse.pos = 6 end
           end
         end
       end
@@ -418,16 +654,24 @@ function game_update()
         board[p2choice4[1]][p2choice4[2]] = 0
         p2choice4 = nil
       end      
+      mouse.pos = 3
       colorchoice = 0
     end
 
     --check whether the player wants to end their turn
     if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(go_button_pos) and (p2choice3 != nil or p2choice4 != nil)) then
-    --if (btnp(5,1) and (p2choice3 != nil or p2choice4 != nil)) then
+      --copy the move to the clipboard if online mode is enabled!
+      if (is_online_mode_enabled) then
+        move = ''
+        if (p2choice3 != nil) move = move..'3'..p2choice3[1]..p2choice3[2]
+        if (p2choice4 != nil) move = move..'4'..p2choice4[1]..p2choice4[2]
+        printh(''..move,'@clip') 
+      end
         gamestate = "p2top1"
         p2choice3 = nil
         p2choice4 = nil
         colorchoice = 0
+        mouse.pos = 2
     end
   end
 
@@ -479,6 +723,7 @@ function game_update()
         board[piece[1]][piece[2]] = 0
         cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 20
         p1score += 1
+        offset += .1
       end
     end
 
@@ -537,6 +782,7 @@ function game_update()
         board[piece[1]][piece[2]] = 0
         cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 20
         p2score += 1
+        offset += .1
       end
     end
 
@@ -621,8 +867,10 @@ function cells_draw()
       line(v.x + 8, v.y + 15, v.x + 8, v.y + 18, 0)
       line(v.x + 16, v.y + 12, v.x + 16, v.y + 15, 0)
     end
-		sspr(cell.spritesheet_x, cell.spritesheet_y, cell.width, cell.height, v.x, v.y, cell.width, cell.height) --draw the actual empty cell
 
+    if (board_index == curr_mouse_to_cell_coords) then pal(7, 15, 0) end
+		sspr(cell.spritesheet_x, cell.spritesheet_y, cell.width, cell.height, v.x, v.y, cell.width, cell.height) --draw the actual empty cell
+    pal(7, 7, 0)
 
     --draw coordinate labels if online mode is on
     if (is_online_mode_enabled) then
@@ -824,7 +1072,6 @@ end
 
 
 function text_draw()
-
     if (gamestate == "turn1") then
       bold_print("player 1's turn", 35, 6, 7)
       bold_print("place one piece!", 34, 14, 7)
@@ -834,8 +1081,20 @@ function text_draw()
     elseif (gamestate == "player2") then
         bold_print("player 2's turn", 35, 8, 7)
     end
+end
 
-
+function screen_shake()
+  local fade = 0.85
+  local offset_x=16-rnd(32)
+  local offset_y=16-rnd(32)
+  offset_x*=offset
+  offset_y*=offset
+  
+  camera(offset_x,offset_y)
+  offset*=fade
+  if offset<0.05 then
+    offset=0
+  end
 end
 
 --returns the index of the closest cell to the mouse
