@@ -259,8 +259,8 @@ function _draw()
     end
   end
 
-
-  print(stat(1), 8, 8, 7)
+  --print cpu usage
+  --print(stat(1), 8, 8, 7)
 end
 
 function mouse_init() 
@@ -1132,25 +1132,30 @@ end
 
 --returns the index of the closest cell to the mouse
 function mouse_to_cell_coords()
-  local h = 64
-  local k = 60
-  local a = 54
-  local b = 42
-  if (mouse.y > sqrt((1 - ((mouse.x - h)^2) / (a ^ 2)) * (b ^ 2)) + k) return nil
-  if (mouse.y < (-1 * sqrt((1 - ((mouse.x - h)^2) / (a ^ 2)) * (b ^ 2)) + k)) return nil
+  if (controlstate == "mouse") then
+    local h = 64
+    local k = 60
+    local a = 54
+    local b = 42
+    if (mouse.y > sqrt((1 - ((mouse.x - h)^2) / (a ^ 2)) * (b ^ 2)) + k) return nil
+    if (mouse.y < (-1 * sqrt((1 - ((mouse.x - h)^2) / (a ^ 2)) * (b ^ 2)) + k)) return nil
 
-  index = 1
-  closestindex = 1
-  d = dist(mouse.x, mouse.y, cell_coords[index][1] + cell.width / 2, cell_coords[index][2] + cell.height / 2)
-  for v in all (cell_coords) do
-    if (dist(mouse.x, mouse.y, cell_coords[index][1] + cell.width / 2, cell_coords[index][2] + cell.height / 2) < d) then
-      d = dist(mouse.x, mouse.y, cell_coords[index][1] + cell.width / 2, cell_coords[index][2] + cell.height / 2)
-      closestindex = index
+    index = 1
+    closestindex = 1
+    d = dist(mouse.x, mouse.y, cell_coords[index][1] + cell.width / 2, cell_coords[index][2] + cell.height / 2)
+    for v in all (cell_coords) do
+      if (dist(mouse.x, mouse.y, cell_coords[index][1] + cell.width / 2, cell_coords[index][2] + cell.height / 2) < d) then
+        d = dist(mouse.x, mouse.y, cell_coords[index][1] + cell.width / 2, cell_coords[index][2] + cell.height / 2)
+        closestindex = index
+      end
+      index += 1
     end
-    index += 1
-  end
 
-  return closestindex
+    return closestindex
+  else
+   if (mouse.pos < 7) then return nil
+   else return (mouse.pos - 6) end
+  end
 end
 
 
@@ -1614,13 +1619,13 @@ function make_starfield_ps()
    add(ps.emittimers,
        {
            timerfunc = emittimer_constant,
-           params = {nextemittime = time(), speed = 0.20}
+           params = {nextemittime = time(), speed = 0.35}
        }
    )
    add(ps.emitters, 
        {
            emitfunc = emitter_box,
-           params = { minx = 0, maxx = 127, miny = 127, maxy= 127, minstartvx = -0.2, maxstartvx = 0.2, minstartvy = -0.5, maxstartvy=-0.1 }
+           params = { minx = 0, maxx = 127, miny = 127, maxy= 127, minstartvx = -0.15, maxstartvx = 0.15, minstartvy = -0.6, maxstartvy=-0.2 }
        }
    )
    add(ps.drawfuncs,
