@@ -214,7 +214,7 @@ end
 function _draw()
   screen_shake()
   --draw background
-	rectfill(0,0,127,127,12)
+  background_draw()
 
   draw_ps(particle_systems[1]) --draw starfield background
 
@@ -259,8 +259,115 @@ function _draw()
     end
   end
 
-  --print cpu usage
+  --print cpu
   --print(stat(1), 8, 8, 7)
+end
+
+function background_draw()
+  rectfill(0, 0, 127, 48, 12)
+  fillp(0b0001000001000000)
+  rectfill(0, 48, 127, 51, 0xec)
+
+  fillp(0b0001000001010000)
+  rectfill(0, 52, 127, 55, 0xec)
+
+  fillp(0b0001000001010000)
+  rectfill(0, 52, 127, 55, 0xec)
+
+  fillp(0b0101000001010000)
+  rectfill(0, 56, 127, 59, 0xec)
+
+  fillp(0b0101001001011000)
+  rectfill(0, 60, 127, 63, 0xec)  
+
+  fillp(0b0101001001011010)
+  rectfill(0, 64, 127, 67, 0xec)  
+
+  fillp(0b0101101001011010)
+  rectfill(0, 68, 127, 71, 0xec)  
+
+  fillp(0b0101101101011110)
+  rectfill(0, 72, 127, 75, 0xec)    
+
+  fillp(0b0101101101011111)
+  rectfill(0, 76, 127, 83, 0xec)   
+
+  fillp(0b0101111101011111)
+  rectfill(0, 84, 127, 87, 0xec)   
+
+  fillp(0b0111111111011111)
+  rectfill(0, 88, 127, 91, 0xec)
+
+  fillp(0b0111111111111111)
+  rectfill(0, 92, 127, 95, 0xec)   
+
+  fillp()
+  rectfill(0, 96, 127, 127, 14)
+--[[
+  for y = 32, 127, 4 do
+    for x = 0, 10, 4 do
+        fillp(generate_random_fillp(flr(y / 4) - 32))
+        rectfill(x, y, x + 4, y + 4, 0xec)
+    end
+    for x = 118, 127, 4 do
+        fillp(generate_random_fillp(flr(y / 4) - 32))
+        rectfill(x, y, x + 4, y + 4, 0xec)
+    end
+  end
+]]
+--[[
+  fillp(generate_random_fillp(0))
+  rectfill(0, 119, 127, 127, 0xce)
+
+  fillp(generate_random_fillp(1))
+  rectfill(0, 111, 127, 119, 0xce)
+
+  fillp(generate_random_fillp(2))
+  rectfill(0, 103, 127, 111, 0xce)
+
+  fillp(generate_random_fillp(3))
+  rectfill(0, 95, 127, 103, 0xce)
+
+  fillp(generate_random_fillp(4))
+  rectfill(0, 87, 127, 95, 0xce)
+
+  fillp(generate_random_fillp(5))
+  rectfill(0, 79, 127, 87, 0xce)
+
+  fillp(generate_random_fillp(6))
+  rectfill(0, 71, 127, 79, 0xce)
+
+  fillp(generate_random_fillp(7))
+  rectfill(0, 63, 127, 71, 0xce)
+
+  fillp(generate_random_fillp(8))
+  rectfill(0, 55, 127, 63, 0xce)
+
+  fillp(generate_random_fillp(9))
+  rectfill(0, 47, 127, 55, 0xce)
+
+  fillp(generate_random_fillp(10))
+  rectfill(0, 39, 127, 47, 0xce)
+
+  fillp(generate_random_fillp(11))
+  rectfill(0, 31, 127, 39, 0xce)
+
+  fillp(generate_random_fillp(12))
+  rectfill(0, 23, 127, 31, 0xce)
+
+  fillp(generate_random_fillp(13))
+  rectfill(0, 15, 127, 23, 0xce)
+
+  fillp(generate_random_fillp(14))
+  rectfill(0, 7, 127, 15, 0xce)
+
+  fillp(generate_random_fillp(15))
+  rectfill(0, 0, 127, 7, 0xce)
+]]
+
+  fillp()
+
+  --rectfill(0,0,127,127,12)
 end
 
 function mouse_init() 
@@ -732,7 +839,7 @@ function game_update()
       for piece in all(bloom) do
         make_sparks_ps(cells[board_coords_to_index(piece[1], piece[2])].x + 9, cells[board_coords_to_index(piece[1], piece[2])].y + 10, board[piece[1]][piece[2]])
         board[piece[1]][piece[2]] = 0
-        cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 20
+        cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 200
         p1score += 1
         offset += .1
       end
@@ -793,7 +900,7 @@ function game_update()
       for piece in all(bloom) do
         make_sparks_ps(cells[board_coords_to_index(piece[1], piece[2])].x + 9, cells[board_coords_to_index(piece[1], piece[2])].y + 10, board[piece[1]][piece[2]])
         board[piece[1]][piece[2]] = 0
-        cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 20
+        cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 200
         p2score += 1
         offset += .1
       end
@@ -1348,6 +1455,34 @@ function lerp(a,b,t)
   return (b - a) * (-2^(-10 * t) + 1 ) + a
 end
 
+--num is the number of bits to flip
+function generate_random_fillp(num)
+  result = 0
+  a = 15 - num
+  for i = 0, 15 do
+    if (rnd(a) < 1) result += (2 ^ i)
+  end
+  return result
+
+--[[
+  arr = {}
+  choices = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}
+
+  for i = 1, num do
+    choice = flr(rnd(#choices)) + 1
+    add(arr, 2 ^ choices[choice])
+    del(choices, choices[choice])
+  end
+
+  result = 0
+  for value in all(arr) do
+   result += value
+  end
+
+  return result
+]]
+end
+
 -- particle system library -----------------------------------
 -- todo: lots of this stuff could be stripped out!!
 particle_systems = {}
@@ -1495,40 +1630,6 @@ function affect_force(p, params)
   p.vy += params.fy
 end
 
-function affect_forcezone(p, params)
-  if (p.x>=params.zoneminx and p.x<=params.zonemaxx and p.y>=params.zoneminy and p.y<=params.zonemaxy) then
-    p.vx += params.fx
-    p.vy += params.fy
-  end
-end
-
-function affect_stopzone(p, params)
-  if (p.x>=params.zoneminx and p.x<=params.zonemaxx and p.y>=params.zoneminy and p.y<=params.zonemaxy) then
-    p.vx = 0
-    p.vy = 0
-  end
-end
-
-function affect_bouncezone(p, params)
-  if (p.x>=params.zoneminx and p.x<=params.zonemaxx and p.y>=params.zoneminy and p.y<=params.zonemaxy) then
-    p.vx = -p.vx*params.damping
-    p.vy = -p.vy*params.damping
-  end
-end
-
-function affect_attract(p, params)
-  if (abs(p.x-params.x)+abs(p.y-params.y)<params.mradius) then
-    p.vx += (p.x-params.x)*params.strength
-    p.vy += (p.y-params.y)*params.strength
-  end
-end
-
-function affect_orbit(p, params)
-  params.phase += params.speed
-  p.x += sin(params.phase)*params.xstrength
-  p.y += cos(params.phase)*params.ystrength
-end
-
 function draw_ps_fillcirc(ps, params)
   for p in all(ps.particles) do
     c = flr(p.phase*count(params.colors))+1
@@ -1542,40 +1643,6 @@ function draw_ps_pixel(ps, params)
     c = flr(p.phase*count(params.colors))+1
     pset(p.x,p.y,params.colors[c])
   end 
-end
-
-function draw_ps_streak(ps, params)
-  for p in all(ps.particles) do
-    c = flr(p.phase*count(params.colors))+1
-    line(p.x,p.y,p.x-p.vx,p.y-p.vy,params.colors[c])
-  end 
-end
-
-function draw_ps_animspr(ps, params)
-  params.currframe += params.speed
-  if (params.currframe>count(params.frames)) then
-    params.currframe = 1
-  end
-  for p in all(ps.particles) do
-    pal(7,params.colors[flr(p.endsize)])
-    spr(params.frames[flr(params.currframe+p.startsize)%count(params.frames)],p.x,p.y)
-  end
-  pal()
-end
-
-function draw_ps_agespr(ps, params)
-  for p in all(ps.particles) do
-    local f = flr(p.phase*count(params.frames))+1
-    spr(params.frames[f],p.x,p.y)
-  end 
-end
-
-function draw_ps_rndspr(ps, params)
-  for p in all(ps.particles) do
-    pal(7,params.colors[flr(p.endsize)])
-    spr(params.frames[flr(p.startsize)],p.x,p.y)
-  end 
-  pal()
 end
 
 function make_sparks_ps(ex,ey, col)
@@ -1631,49 +1698,11 @@ function make_starfield_ps()
    add(ps.drawfuncs,
        {
            drawfunc = draw_ps_pixel,
-           params = { colors = {10,7,10,7,10,10,7,10,7,10,10,7,10,10} }
+           params = { colors = {14,15,14,14,14,14,14,14,15,14,14,15,14,14} }
            --params = { colors = {7,6,7,6,7,6,6,7,6,7,7,6,6,7} }
        }
    )
 end
-
-inverses_dark = {
-	6,
-	9,
-	13,
-	9,
-	13,
-	13,
-	2,
-	0,
-	13,
-	1,
-	1,
-	9,
-	2,
-	2,
-	4,
-	1
-}
-
-inverses = {
-	{0,7},
-	{1,15},
-	{2,12},
-	{3,14},
-	{4,12},
-	{5,6},
-	{6,5},
-	{7,0},
-	{8,12},
-	{9,1},
-	{10,1},
-	{11,14},
-	{12,4},
-	{13,5},
-	{14,3},
-	{15,1}
-}
 
 __gfx__
 0000000070000000000000000000000006000000fffff99999fffffffffff88888fffffffffffbbbbbfffffffffffdddddffffff000008800000099000000000
