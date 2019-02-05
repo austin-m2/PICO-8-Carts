@@ -1,13 +1,55 @@
 pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
-	width = 22
-	height = 20
-	widthscale = 1
-	heightscale = 1
+  patterns = {
+    0b0001,
+    0b0000,
+    0b0100,
+    0b0000,
+    0b0001,
+    0b0000,
+    0b0101,
+    0b0000,
+    0b0101,
+    0b0000,
+    0b0101,
+    0b0000,
+    0b0101,
+    0b0010,
+    0b0101,
+    0b1000,
+    0b0101,
+    0b0010,
+    0b0101,
+    0b1010,
+    0b0101,
+    0b1010,
+    0b0101,
+    0b1010,
+    0b0101,
+    0b1011,
+    0b0101,
+    0b1110,
+    0b0101,
+    0b1011,
+    0b0101,
+    0b1111,
+    0b0101,
+    0b1111,
+    0b0101,
+    0b1111,
+    0b0111,
+    0b1111,
+    0b1101,
+    0b1111,
+    0b0111,
+    0b1111,
+    0b1111,
+    0b1111,
+  }
 
-	spritesheet_start_x = 0
-	spritesheet_start_y = 34
+  timer = 0
+
 	mem = 0
 
 	mouse = {
@@ -26,7 +68,6 @@ __lua__
   curr_mouse_to_cell = nil
 
 	cells = {}
-	gems = {}
 
   controlstate = "keyboard"
   is_online_mode_enabled = true
@@ -174,82 +215,42 @@ function _init()
 	cells_init()
   columns_init()
   buttons_init()
-
+  patterns_init()
+  background_init()
   make_starfield_ps()
   gamestate = "turn1"
 end
 
 function _update60()
   cpu = 0
+  timer += 1
 
 	upd_keys()
-  printh(stat(1) - cpu..": upd_keys()")
-  cpu = stat(1)
-
   mouse_update()
-  printh(stat(1) - cpu..": mouse_update()")
-  cpu = stat(1)
-
-
   cells_update()
-  printh(stat(1) - cpu..": cells_update()")
-  cpu = stat(1)
-
-
+  patterns_update()
+  background_update()
   game_update()
-  printh(stat(1) - cpu..": game_update()")
-  cpu = stat(1)
-
   update_psystems()
-
   columns_update()
-  printh(stat(1) - cpu..": columns_update()")
-  cpu = stat(1)
-
   buttons_update()
-  printh(stat(1) - cpu..": buttons_update()")
-  cpu = stat(1)
+
 end
 
 function _draw()
   screen_shake()
-  --draw background
   background_draw()
-
   draw_ps(particle_systems[1]) --draw starfield background
-
-  cpu = stat(1)
-
   columns_draw()
-  printh(stat(1) - cpu..": columns_draw()")
-  cpu = stat(1)
-
-
   cells_draw()
-  printh(stat(1) - cpu..": cells_draw()")
-  cpu = stat(1)
 
   for ps in all(particle_systems) do
     if (ps != particle_systems[1]) draw_ps(ps)
   end
 
-
   buttons_draw()
-  printh(stat(1) - cpu..": buttons_draw()")
-  cpu = stat(1)
-
   text_draw()
-  printh(stat(1) - cpu..": text_draw()")
-  cpu = stat(1)
-
-	--gems_draw()
 	mouse_draw()
-  printh(stat(1) - cpu..": cells_draw()\n\n\n")
-
-
-  --print(mouse.x, 0, 0, 7)
-  --print(mouse.y, 16, 0, 7)
-
 
   if (gamestate == "end") then
     if (p1score > p2score) then
@@ -260,129 +261,84 @@ function _draw()
   end
 
   --print cpu
-  --print(stat(1), 8, 8, 7)
+  print(stat(1), 8, 8, 7)
+end
+
+function build_pattern(num)
+  num = ((num - 1) * 4) + 1
+  pattern = band(patterns[num], 0xf000)
+  pattern += band(patterns[num + 1], 0xf00)
+  pattern += band(patterns[num + 2], 0xf0)
+  pattern += band(patterns[num + 3], 0xf)
+  return pattern
+end
+
+function patterns_update()
+  if (timer % 10 == 0) then
+  for i = 1, #patterns, 4 do
+    temp1 = patterns[i]
+    temp2 = patterns[i+1]
+    temp3 = patterns[i+2]
+    temp4 = patterns[i+3]
+    patterns[i] = temp2
+    patterns[i+1] = temp3
+    patterns[i+2] = temp4
+    patterns[i+3] = temp1
+  end
+
+  --[[
+    for i = 1, #patterns do
+      patterns[i] = rotl(patterns[i], 1)
+    end
+    ]]
+  end
+end
+
+function background_init()
+  back_y_orig = {55,57,59,61,65,67,71,75,83,87,91,95}
+  back_y = {}
+  --background_col = 0xec
+  background_col = 0x00
+
+  --good colors
+  --13, 16, 1c, 1f
+end
+
+function background_update()
+  if (is_pressed(5)) then
+    --background_col = flr(rnd(0xff))
+    background_col += 1
+    particle_systems[1].drawfuncs[1].params.colors[1] = flr(shr(background_col, 4))
+  end
+  for i = 1, #back_y_orig do
+    back_y[i] = back_y_orig[i] + (sin(((timer + (i*20)) % 240) / 240) * 5)
+  end
+end
+
+function dither_rect(i)
+  pattern = build_pattern(i)
+  fillp(flr(pattern))
+  rectfill(0, back_y[i] + 1, 127, back_y[i + 1], background_col)
 end
 
 function background_draw()
-  rectfill(0, 0, 127, 48, 12)
-  fillp(0b0001000001000000)
-  rectfill(0, 48, 127, 51, 0xec)
-
-  fillp(0b0001000001010000)
-  rectfill(0, 52, 127, 55, 0xec)
-
-  fillp(0b0001000001010000)
-  rectfill(0, 52, 127, 55, 0xec)
-
-  fillp(0b0101000001010000)
-  rectfill(0, 56, 127, 59, 0xec)
-
-  fillp(0b0101001001011000)
-  rectfill(0, 60, 127, 63, 0xec)  
-
-  fillp(0b0101001001011010)
-  rectfill(0, 64, 127, 67, 0xec)  
-
-  fillp(0b0101101001011010)
-  rectfill(0, 68, 127, 71, 0xec)  
-
-  fillp(0b0101101101011110)
-  rectfill(0, 72, 127, 75, 0xec)    
-
-  fillp(0b0101101101011111)
-  rectfill(0, 76, 127, 83, 0xec)   
-
-  fillp(0b0101111101011111)
-  rectfill(0, 84, 127, 87, 0xec)   
-
-  fillp(0b0111111111011111)
-  rectfill(0, 88, 127, 91, 0xec)
-
-  fillp(0b0111111111111111)
-  rectfill(0, 92, 127, 95, 0xec)   
-
-  fillp()
-  rectfill(0, 96, 127, 127, 14)
---[[
-  for y = 32, 127, 4 do
-    for x = 0, 10, 4 do
-        fillp(generate_random_fillp(flr(y / 4) - 32))
-        rectfill(x, y, x + 4, y + 4, 0xec)
-    end
-    for x = 118, 127, 4 do
-        fillp(generate_random_fillp(flr(y / 4) - 32))
-        rectfill(x, y, x + 4, y + 4, 0xec)
-    end
+  rectfill(0, 0, 127, back_y[1], band(background_col,0x0f))
+  for i = 1, 11 do 
+    dither_rect(i)
   end
-]]
---[[
-  fillp(generate_random_fillp(0))
-  rectfill(0, 119, 127, 127, 0xce)
-
-  fillp(generate_random_fillp(1))
-  rectfill(0, 111, 127, 119, 0xce)
-
-  fillp(generate_random_fillp(2))
-  rectfill(0, 103, 127, 111, 0xce)
-
-  fillp(generate_random_fillp(3))
-  rectfill(0, 95, 127, 103, 0xce)
-
-  fillp(generate_random_fillp(4))
-  rectfill(0, 87, 127, 95, 0xce)
-
-  fillp(generate_random_fillp(5))
-  rectfill(0, 79, 127, 87, 0xce)
-
-  fillp(generate_random_fillp(6))
-  rectfill(0, 71, 127, 79, 0xce)
-
-  fillp(generate_random_fillp(7))
-  rectfill(0, 63, 127, 71, 0xce)
-
-  fillp(generate_random_fillp(8))
-  rectfill(0, 55, 127, 63, 0xce)
-
-  fillp(generate_random_fillp(9))
-  rectfill(0, 47, 127, 55, 0xce)
-
-  fillp(generate_random_fillp(10))
-  rectfill(0, 39, 127, 47, 0xce)
-
-  fillp(generate_random_fillp(11))
-  rectfill(0, 31, 127, 39, 0xce)
-
-  fillp(generate_random_fillp(12))
-  rectfill(0, 23, 127, 31, 0xce)
-
-  fillp(generate_random_fillp(13))
-  rectfill(0, 15, 127, 23, 0xce)
-
-  fillp(generate_random_fillp(14))
-  rectfill(0, 7, 127, 15, 0xce)
-
-  fillp(generate_random_fillp(15))
-  rectfill(0, 0, 127, 7, 0xce)
-]]
-
+  fillp(0b1111111111111111)
+  rectfill(0, back_y[12] + 1, 127, 127, background_col)
   fillp()
 
-  --rectfill(0,0,127,127,12)
+  --print current color
+  --print(sub(tostr(background_col, true), 1, 6), 4, 4, flr(shr(background_col, 4)))
+
 end
 
 function mouse_init() 
 	--enable mouse support
 	poke(0x5f2d, 1)
   mouse.pos = 1
-
-	for sx = 8, 11 do
-		for sy = 0, 5 do
-			if (sget(sx, sy) == 7) then
-				add(mouse_pixels, {sx - 8, sy})
-			end
-		end
-	end
-
 end
 
 function mouse_update()
@@ -402,7 +358,6 @@ function mouse_update()
     if (is_pressed(6)) controlstate = "mouse"
   end
 
-
   if (controlstate == "mouse") then
     mouse.x = stat(32)
     mouse.y = stat(33)
@@ -411,16 +366,11 @@ function mouse_update()
     move_mouse()
     mouse.x = mouse_anchor_points[mouse.pos][1]
     mouse.y = mouse_anchor_points[mouse.pos][2]
-
     if (mouse.pos == 1 or mouse.pos == 2) mouse.y -= p1score
     if (mouse.pos == 3 or mouse.pos == 4) mouse.y -= p2score
-
   end
 
-  cpu = stat(1)
   curr_mouse_to_cell = mouse_to_cell()
-
-  printh(stat(1) - cpu..": mouse_to_cell() and mouse_to_cell_coords()")
 end
 
 function mouse_draw()
@@ -923,8 +873,6 @@ function game_update()
 end
 
 
-
-
 --each cell has an x and y coordinate, as well as an index into the cell_coords table (this holds where that cell is "supposed" to be)
 function cell_create(px, py, pindex)
 	return {x = px, y = py, index = pindex}
@@ -981,11 +929,11 @@ function cells_draw()
       line(v.x + 8, v.y + 15, v.x + 8, 127, 0)
       line(v.x + 16, v.y + 12, v.x + 16, 127, 0)
     else
-      rectfill(v.x + 1, v.y + 13, v.x + 7, v.y + 19, 6)
-      rectfill(v.x + 9, v.y + 13, v.x + 15, v.y + 19, 5)
-      line(v.x, v.y + 12, v.x, v.y + 17, 0)
-      line(v.x + 8, v.y + 15, v.x + 8, v.y + 20, 0)
-      line(v.x + 16, v.y + 12, v.x + 16, v.y + 17, 0)
+      rectfill(v.x + 1, v.y + 13, v.x + 7, v.y + 50, 6)
+      rectfill(v.x + 9, v.y + 13, v.x + 15, v.y + 50, 5)
+      line(v.x, v.y + 12, v.x, v.y + 50, 0)
+      line(v.x + 8, v.y + 15, v.x + 8, v.y + 50, 0)
+      line(v.x + 16, v.y + 12, v.x + 16, v.y + 50, 0)
     end
 
     if (board_index == curr_mouse_to_cell_coords) then pal(7, 15, 0) end
@@ -1174,23 +1122,6 @@ function buttons_draw()
   palt()
 end
 
-
-function gems_update()
-	gem_coords = curr_mouse_to_cell_coords
-	if ((is_pressed(6) or is_pressed(4))) then
-
-		sfx(0)
-		add(gems, gem_coords)
-	end
-end
-
-function gems_draw()
-	for v in all(gems) do
-		sspr(2 * 8, 0, 10, 8, v.x, v.y, 10 * 2, 8 * 2)
-	end
-end
-
-
 function text_draw()
     if (gamestate == "turn1") then
       bold_print("player 1's turn", 35, 6, 7)
@@ -1217,25 +1148,6 @@ function screen_shake()
   end
 end
 
---returns the index of the closest cell to the mouse
---should be called after the blank cells are drawn
---[[
-function mouse_to_cell_original()
-  if (pget(mouse.x, mouse.y) != 7) return nil
-  index = 1
-  closestindex = 1
-	d = dist(mouse.x, mouse.y, cells[1].x + cell.width / 2, cells[1].y + cell.height / 2)
-	for v in all (cells) do
-		if (dist(mouse.x, mouse.y, v.x + cell.width / 2, v.y + cell.height / 2) < d) then
-			d = dist(mouse.x, mouse.y, v.x + cell.width / 2, v.y + cell.height / 2)
-      closestindex = index
-		end
-    index += 1
-	end
-
-	return closestindex
-end
-]]
 
 --returns the index of the closest cell to the mouse
 function mouse_to_cell_coords()
@@ -1333,13 +1245,6 @@ function findbloom(i, j, bloom)
   if (i > 1 and j < 7 and board[i - 1][j + 1] == piececolor) findbloom(i - 1, j + 1, bloom)
   if (i > 1 and board[i - 1][j] == piececolor) findbloom(i - 1, j, bloom)
 
---[[
-  for piece in all(bloom) do
-   --printh("("..piece[1]..","..piece[2]..") ")
-  end
-  --printh("piececolor: "..piececolor)
-  --printh(" ")
-]]
 end
 
 function is_there_an_empty_neighbor(piece)
@@ -1362,12 +1267,6 @@ end
 --used for printing the coordinate labels on the columns
 --highlights the text for the row and column under the mouse
 function s_print(str, x, y, col)
---[[
-  if (curr_mouse_to_cell != nil) then 
-    print(curr_mouse_to_cell[1], 8, 8, 7)
-    print(curr_mouse_to_cell[2], 16, 8, 7)
-  end
-]]
   if (
     curr_mouse_to_cell != nil and (
     (str == "a" and (curr_mouse_to_cell[1] + curr_mouse_to_cell[2] == 5)) or
@@ -1455,33 +1354,19 @@ function lerp(a,b,t)
   return (b - a) * (-2^(-10 * t) + 1 ) + a
 end
 
---num is the number of bits to flip
-function generate_random_fillp(num)
-  result = 0
-  a = 15 - num
-  for i = 0, 15 do
-    if (rnd(a) < 1) result += (2 ^ i)
+function patterns_init()
+  for i = 1, #patterns do
+    num = patterns[i]
+    patterns[i] += shl(num, 4)
+    patterns[i] += shl(num, 8)
+    patterns[i] += shl(num, 12)
+    patterns[i] += shr(num, 4)
+    patterns[i] += shr(num, 8)
+    patterns[i] += shr(num, 12)
+    patterns[i] += shr(num, 16)
   end
-  return result
-
---[[
-  arr = {}
-  choices = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}
-
-  for i = 1, num do
-    choice = flr(rnd(#choices)) + 1
-    add(arr, 2 ^ choices[choice])
-    del(choices, choices[choice])
-  end
-
-  result = 0
-  for value in all(arr) do
-   result += value
-  end
-
-  return result
-]]
 end
+
 
 -- particle system library -----------------------------------
 -- todo: lots of this stuff could be stripped out!!
@@ -1569,12 +1454,6 @@ end
 function draw_ps(ps, params)
   for df in all(ps.drawfuncs) do
     df.drawfunc(ps, df.params)
-  end
-end
-
-function deleteallps()
-  for ps in all(particle_systems) do
-    del(particle_systems, ps)
   end
 end
 
@@ -1698,7 +1577,8 @@ function make_starfield_ps()
    add(ps.drawfuncs,
        {
            drawfunc = draw_ps_pixel,
-           params = { colors = {14,15,14,14,14,14,14,14,15,14,14,15,14,14} }
+           params = { colors = {14} }
+           --params = { colors = {14,15,14,14,14,14,14,14,15,14,14,15,14,14} }
            --params = { colors = {7,6,7,6,7,6,6,7,6,7,7,6,6,7} }
        }
    )
