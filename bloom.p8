@@ -25,7 +25,7 @@ function _update60()
     patterns_update()
     background_update()
     update_psystems()
-    swap_piece_colors()
+    swap_menu_colors()
     if (is_pressed(4)) gamestate = "turn1"
   else
     upd_keys()
@@ -367,9 +367,14 @@ function background_init()
   --1f, 1e, 91, a2, 14, 40, 92, ac, 2a, 81, 90, 93, a0, a4, e1, f4
 end
 
+function set_background_color(i)
+  background_col_index = i
+  background_col = background_col_list[background_col_index]
+  particle_systems[1].drawfuncs[1].params.colors[1] = flr(shr(background_col, 4))
+end
 
 function background_update()
-  if (is_pressed(5)) then
+  if (is_pressed(5) and gamestate == "menu") then
     --background_col = flr(rnd(0xff))
     background_col_index += 1
     if (background_col_index > #background_col_list) background_col_index = 1
@@ -504,6 +509,7 @@ function game_update()
 
   if (gamestate == "turn1") then
     --check if player is trying to paste a move
+--[[
     if (is_pressed(5)) then
       move = ''..stat(4)
       if (#move == 3) then
@@ -522,6 +528,7 @@ function game_update()
         end
       end
     end
+]]
 
     --check if player is choosing a color
     if ((is_pressed(6) or is_pressed(4)) and dist(mouse.x, mouse.y, left_column_pos[1] + 8, left_column_pos[2] + 8) < 7.5) then
@@ -576,12 +583,15 @@ function game_update()
     --check whether the player wants to end their turn
     if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
         --copy the move to the clipboard if online mode is enabled!
+--[[
+        
         if (is_online_mode_enabled) then
           move = ''
           if (p1choice1 != nil) move = move..'1'..p1choice1[1]..p1choice1[2]
           if (p1choice2 != nil) move = move..'2'..p1choice2[1]..p1choice2[2]
           printh(''..move,'@clip') 
         end
+]]
 
         gamestate = "p1top2"
         p1choice1 = nil
@@ -593,6 +603,7 @@ function game_update()
 
 
   if (gamestate == "player1") then
+--[[
     --check if player is trying to paste a move
     if (is_pressed(5)) then
       move = ''..stat(4)
@@ -629,6 +640,7 @@ function game_update()
       else
       end
     end
+]]
 
 
     --check if player is choosing a color
@@ -686,12 +698,14 @@ function game_update()
     --check whether the player wants to end their turn
     if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(go_button_pos) and (p1choice1 != nil or p1choice2 != nil)) then
       --copy the move to the clipboard if online mode is enabled!
+--[[
       if (is_online_mode_enabled) then
         move = ''
         if (p1choice1 != nil) move = move..'1'..p1choice1[1]..p1choice1[2]
         if (p1choice2 != nil) move = move..'2'..p1choice2[1]..p1choice2[2]
         printh(''..move,'@clip') 
       end
+]]
       gamestate = "p1top2"
       p1choice1 = nil
       p1choice2 = nil
@@ -701,6 +715,7 @@ function game_update()
   end
 
   if (gamestate == "player2") then
+--[[
     --check if player is trying to paste a move
     if (is_pressed(5)) then
       move = ''..stat(4)
@@ -737,6 +752,7 @@ function game_update()
       else
       end
     end
+]]
 
     --check if player is choosing a color
     if ((is_pressed(6) or is_pressed(4)) and dist(mouse.x, mouse.y, right_column_pos[1] + 8, right_column_pos[2] + 8) < 7.5) then
@@ -793,12 +809,14 @@ function game_update()
     --check whether the player wants to end their turn
     if ((is_pressed(6) or is_pressed(4)) and is_mouse_inside_button(go_button_pos) and (p2choice3 != nil or p2choice4 != nil)) then
       --copy the move to the clipboard if online mode is enabled!
+--[[
       if (is_online_mode_enabled) then
         move = ''
         if (p2choice3 != nil) move = move..'3'..p2choice3[1]..p2choice3[2]
         if (p2choice4 != nil) move = move..'4'..p2choice4[1]..p2choice4[2]
         printh(''..move,'@clip') 
       end
+]]
         gamestate = "p2top1"
         p2choice3 = nil
         p2choice4 = nil
@@ -808,7 +826,6 @@ function game_update()
   end
 
   if (gamestate == "p1top2" or gamestate == "p2top1") then
-
     if (gamestate == "p1top2") then
       piece1 = 3
       piece2 = 4
@@ -948,37 +965,96 @@ function piece_draw(num, x, y)
   --palt()
 end
 
-function swap_piece_colors()
+function swap_menu_colors()
   if (is_pressed(0)) then
+    p2color1 += 1
+    if (p2color1 > #piece_colors) p2color1 = 1
+    while ((p2color1 == p2color2) or (p2color1 == p1color1) or (p2color1 == p1color2)) do
       p2color1 += 1
       if (p2color1 > #piece_colors) p2color1 = 1
-      while ((p2color1 == p2color2) or (p2color1 == p1color1) or (p2color1 == p1color2)) do
-        p2color1 += 1
-      if (p2color1 > #piece_colors) p2color1 = 1
     end
-
   elseif (is_pressed(1)) then
+    p2color2 += 1
+    if (p2color2 > #piece_colors) p2color2 = 1
+    while ((p2color2 == p1color1) or (p2color2 == p1color2) or (p2color2 == p2color1)) do
       p2color2 += 1
-      if (p2color2 > #piece_colors) p2color2 = 1
-      while ((p2color2 == p1color1) or (p2color2 == p1color2) or (p2color2 == p2color1)) do
-        p2color2 += 1
       if (p2color2 > #piece_colors) p2color2 = 1
     end
   elseif (is_pressed(2)) then
+    p1color2 += 1
+    if (p1color2 > #piece_colors) p1color2 = 1
+    while ((p1color2 == p1color1) or (p1color2 == p2color1) or (p1color2 == p2color2)) do
+      p1color2 += 1
+      if (p1color2 > #piece_colors) p1color2 = 1
+    end
+  elseif (is_pressed(3)) then
+    p1color1 += 1
+    if (p1color1 > #piece_colors) p1color1 = 1
+    while ((p1color1 == p1color2) or (p1color1 == p2color1) or (p1color1 == p2color2)) do
+      p1color1 += 1
+      if (p1color1 > #piece_colors) p1color1 = 1
+    end 
+  end
+
+  if (is_pressed(6)) then
+    if (dist(stat(32), stat(33), 15, 55) < 5) then
+      set_background_color(1)
+    elseif (dist(stat(32), stat(33), 24, 55) < 5) then
+      set_background_color(2)
+    elseif (dist(stat(32), stat(33), 33, 55) < 5) then
+      set_background_color(3)
+    elseif (dist(stat(32), stat(33), 42, 55) < 5) then
+      set_background_color(4)
+    elseif (dist(stat(32), stat(33), 51, 55) < 5) then
+      set_background_color(5)      
+    elseif (dist(stat(32), stat(33), 60, 55) < 5) then
+      set_background_color(6)    
+    elseif (dist(stat(32), stat(33), 69, 55) < 5) then
+      set_background_color(7)
+    elseif (dist(stat(32), stat(33), 78, 55) < 5) then
+      set_background_color(8)  
+    elseif (dist(stat(32), stat(33), 87, 55) < 5) then
+      set_background_color(9)    
+    elseif (dist(stat(32), stat(33), 96, 55) < 5) then
+      set_background_color(10)          
+    elseif (dist(stat(32), stat(33), 105, 55) < 5) then
+      set_background_color(11)    
+    elseif (dist(stat(32), stat(33), 114, 55) < 5) then
+      set_background_color(12)               
+    elseif (dist(stat(32), stat(33), 26, 77) < 8) then 
       p1color2 += 1
       if (p1color2 > #piece_colors) p1color2 = 1
       while ((p1color2 == p1color1) or (p1color2 == p2color1) or (p1color2 == p2color2)) do
         p1color2 += 1
       if (p1color2 > #piece_colors) p1color2 = 1
-    end
-  elseif (is_pressed(3)) then
+      end
+    elseif (dist(stat(32), stat(33), 46, 77) < 8) then 
       p1color1 += 1
       if (p1color1 > #piece_colors) p1color1 = 1
       while ((p1color1 == p1color2) or (p1color1 == p2color1) or (p1color1 == p2color2)) do
         p1color1 += 1
-      if (p1color1 > #piece_colors) p1color1 = 1
-    end 
+        if (p1color1 > #piece_colors) p1color1 = 1
+      end 
+    elseif (dist(stat(32), stat(33), 82, 77) < 8) then 
+      p2color1 += 1
+      if (p2color1 > #piece_colors) p2color1 = 1
+      while ((p2color1 == p2color2) or (p2color1 == p1color1) or (p2color1 == p1color2)) do
+        p2color1 += 1
+        if (p2color1 > #piece_colors) p2color1 = 1
+      end
+    elseif (dist(stat(32), stat(33), 102, 77) < 8) then 
+      p2color2 += 1
+      if (p2color2 > #piece_colors) p2color2 = 1
+      while ((p2color2 == p1color1) or (p2color2 == p1color2) or (p2color2 == p2color1)) do
+        p2color2 += 1
+        if (p2color2 > #piece_colors) p2color2 = 1
+      end  
+    elseif (dist(stat(32), stat(33), 64, 88) < 7) then  
+      gamestate = "turn1"
+    end
   end
+
+
 
 end
 
