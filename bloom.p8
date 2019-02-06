@@ -261,7 +261,7 @@ function _draw()
   end
 
   --print cpu
-  print(stat(1), 8, 8, 7)
+  --print(stat(1), 8, 8, 7)
 end
 
 function build_pattern(num)
@@ -298,16 +298,20 @@ function background_init()
   back_y_orig = {55,57,59,61,65,67,71,75,83,87,91,95}
   back_y = {}
   --background_col = 0xec
-  background_col = 0x00
+  background_col_index = 1
+  background_col_list = {0x1f, 0x1e, 0x91, 0xa2, 0x14, 0x92, 0xac, 0x2a, 0x93, 0xa4, 0xe1, 0xf4}
+  background_col = background_col_list[background_col_index]
 
   --good colors
-  --13, 16, 1c, 1f
+  --1f, 1e, 91, a2, 14, 40, 92, ac, 2a, 81, 90, 93, a0, a4, e1, f4
 end
 
 function background_update()
   if (is_pressed(5)) then
     --background_col = flr(rnd(0xff))
-    background_col += 1
+    background_col_index += 1
+    if (background_col_index > #background_col_list) background_col_index = 1
+    background_col = background_col_list[background_col_index]
     particle_systems[1].drawfuncs[1].params.colors[1] = flr(shr(background_col, 4))
   end
   for i = 1, #back_y_orig do
@@ -741,7 +745,16 @@ function game_update()
     end
   end
 
-  if (gamestate == "p1top2") then
+  if (gamestate == "p1top2" or gamestate == "p2top1") then
+
+    if (gamestate == "p1top2") then
+      piece1 = 3
+      piece2 = 4
+    else
+      piece1 = 1
+      piece2 = 2
+    end
+
     bloomtable = {}
     for i = 1, 7 do
       for j = 1, 7 do
@@ -757,7 +770,7 @@ function game_update()
           end
 
           --only add enemy blooms to the table
-          if ((not found) and (board[i][j] == 3 or board[i][j] == 4)) then
+          if ((not found) and (board[i][j] == piece1 or board[i][j] == piece2)) then
             bloom = {}
             findbloom(i, j, bloom)
             add(bloomtable, bloom)
@@ -790,76 +803,15 @@ function game_update()
         make_sparks_ps(cells[board_coords_to_index(piece[1], piece[2])].x + 9, cells[board_coords_to_index(piece[1], piece[2])].y + 10, board[piece[1]][piece[2]])
         board[piece[1]][piece[2]] = 0
         cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 200
-        p1score += 1
+        if (gamestate == "p1top2") then p1score += 1 else p2score += 1 end
         offset += .1
       end
     end
 
-    if (p1score >= maxscore) then
+    if (p1score >= maxscore or p2score >= maxscore) then
       gamestate = "end"
     else
-      gamestate = "player2"
-    end
-  end
-
-  if (gamestate == "p2top1") then
-    bloomtable = {}
-    for i = 1, 7 do
-      for j = 1, 7 do
-        if (board[i][j] > 0)  then --a piece is here!
-          --check if this piece is already in a bloom we know about
-          found = false
-          for bloomy in all(bloomtable) do
-            for piece in all(bloomy) do
-              if (piece[1] == i and piece[2] == j) then
-                found = true
-              end
-            end
-          end
-
-          --only add enemy blooms to the table
-          if ((not found) and (board[i][j] == 1 or board[i][j] == 2)) then
-            bloom = {}
-            findbloom(i, j, bloom)
-            add(bloomtable, bloom)
-          end
-        end
-      end
-    end
-
-    --now we have a table containing all the enemy blooms on the board!
-    --check to see if any of them should be destroyed
-    deadblooms = {}
-    for bloom in all(bloomtable) do
-     alive = false
-     for piece in all(bloom) do
-      if (is_there_an_empty_neighbor(piece)) then
-        alive = true
-        break
-      end 
-     end
-     if (not alive) then
-      --mark bloom for deletion
-      add(deadblooms, bloom)
-     end
-    end
-
-    --kill blooms that were marked for deletion
-    for bloom in all(deadblooms) do
-      sfx(3)
-      for piece in all(bloom) do
-        make_sparks_ps(cells[board_coords_to_index(piece[1], piece[2])].x + 9, cells[board_coords_to_index(piece[1], piece[2])].y + 10, board[piece[1]][piece[2]])
-        board[piece[1]][piece[2]] = 0
-        cells[board_coords_to_index(piece[1], piece[2])].y = cell_coords[board_coords_to_index(piece[1], piece[2])][2] + 200
-        p2score += 1
-        offset += .1
-      end
-    end
-
-    if (p2score >= maxscore) then
-      gamestate = "end"
-    else
-      gamestate = "player1"
+      if (gamestate == "p1top2") then gamestate = "player2" else gamestate = "player1" end
     end
   end
 
