@@ -895,7 +895,7 @@ function game_update()
   end
 
   if (gamestate == "end")  then
-    if (is_pressed(5)) then
+    if (is_pressed(5) or (is_pressed(6) and (dist(stat(32), stat(33), 48, 16) < 5))) then
       _init()
     end
   end
